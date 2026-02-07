@@ -497,6 +497,7 @@ private fun CacheDrawScope.drawCaretWithPath(
  * @param controller Controller managing all spotlight zones
  * @param message The text message to display in the tooltip
  * @param modifier Modifier to be applied to the spotlight zone
+ * @param shape Shape of the spotlight cutout (e.g. CircleShape, RoundedCornerShape, RectangleShape)
  * @param audioResId Optional raw resource ID for audio to play with this message
  * @param content Composable content to be highlighted by the spotlight
  *
@@ -506,6 +507,7 @@ private fun CacheDrawScope.drawCaretWithPath(
  *     key = "profile",
  *     controller = controller,
  *     message = "Tap here for profile",
+ *     shape = RoundedCornerShape(16.dp),
  *     audioResId = R.raw.profile_audio
  * ) {
  *     ProfileButton()
@@ -518,6 +520,7 @@ fun SpotlightZone(
     controller: SpotlightController,
     message: String,
     modifier: Modifier = Modifier,
+    shape: Shape = RectangleShape,
     @RawRes audioResId: Int? = null,
     content: @Composable () -> Unit
 ) {
@@ -540,6 +543,7 @@ fun SpotlightZone(
         controller = controller,
         modifier = modifier,
         messages = messages,
+        shape = shape,
         content = content
     )
 }

@@ -23,10 +23,17 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.Outline
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.TileMode
+import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
@@ -43,6 +50,7 @@ internal fun DimmingGroundImpl(
     shape: Shape,
     modifier: Modifier = Modifier,
     rippleIntensity: Float = SpotlightDefaults.RippleIntensity,
+    rippleColor: Color = SpotlightDefaults.RippleColor,
     content: @Composable () -> Unit
 ) {
     Box(modifier) {
@@ -53,7 +61,8 @@ internal fun DimmingGroundImpl(
             position = position,
             componentSize = size,
             dimState = dimState,
-            rippleIntensity = rippleIntensity
+            rippleIntensity = rippleIntensity,
+            rippleColor = rippleColor
         )
     }
 }
@@ -63,28 +72,20 @@ internal fun DimmingGroundImpl(
  *
  * [intensity] controls **how many rings** are visible (0f → 0 rings, 1f → 4 rings).
  * Inactive rings collapse into the smooth gradient baseline (`dimAlpha * position`).
- * Each ring fades in gradually as the intensity crosses its threshold.
- *
- * @param r         ratio (0‑1) where the fully‑clear zone ends inside the gradient.
- * @param s         remaining ratio (`1 - r`) available for the ripple zone.
- * @param dimAlpha  maximum overlay alpha at full dim.
- * @param intensity clamped 0‑1 ripple intensity.
+ * The ripple [color] is used throughout; the outer dim uses the same color for continuity.
  */
 private fun buildRippleColorStops(
     r: Float,
     s: Float,
     dimAlpha: Float,
-    intensity: Float
+    intensity: Float,
+    color: Color
 ): Array<Pair<Float, Color>> {
-    val dim = Color.Black
-
-    // Each ring is defined by its position in the ripple zone and how far
-    // it deviates from the smooth baseline when fully visible.
     data class Ring(
-        val peakPos: Float,      // position in ripple zone [0, 1]
-        val troughPos: Float,    // position in ripple zone [0, 1]
-        val peakOffset: Float,   // added to baseline alpha at peak
-        val troughOffset: Float  // subtracted from baseline alpha at trough
+        val peakPos: Float,
+        val troughPos: Float,
+        val peakOffset: Float,
+        val troughOffset: Float
     )
 
     val rings = listOf(
@@ -94,33 +95,28 @@ private fun buildRippleColorStops(
         Ring(peakPos = 0.78f, troughPos = 0.88f, peakOffset = 0.04f, troughOffset = 0.07f),
     )
 
-    // intensity 0 → 0 active rings, intensity 1 → all 4 active
     val activeRings = intensity * rings.size
 
     return buildList {
-        // Fully clear spotlight zone
         add(0.0f to Color.Transparent)
         add(r to Color.Transparent)
 
         for ((index, ring) in rings.withIndex()) {
-            // 0 = ring collapsed into smooth gradient, 1 = fully visible wave
             val visibility = (activeRings - index).coerceIn(0f, 1f)
 
-            // Smooth gradient baseline: alpha increases linearly with position
             val baselinePeak = dimAlpha * ring.peakPos
             val baselineTrough = dimAlpha * ring.troughPos
 
-            // Visible ring: peak rises above baseline, trough dips below it
             val peakA = baselinePeak + ring.peakOffset * visibility
             val troughA = (baselineTrough - ring.troughOffset * visibility).coerceAtLeast(0f)
 
-            add(r + s * ring.peakPos to dim.copy(alpha = peakA))
-            add(r + s * ring.troughPos to dim.copy(alpha = troughA))
+            add(r + s * ring.peakPos to color.copy(alpha = peakA))
+            add(r + s * ring.troughPos to color.copy(alpha = troughA))
         }
 
-        // Settle to full dim
-        add(r + s * 0.95f to dim.copy(alpha = dimAlpha * 0.85f))
-        add(1.0f to dim.copy(alpha = dimAlpha))
+        // Continuous settle using the same ripple color — no black transition
+        add(r + s * 0.94f to color.copy(alpha = dimAlpha * 0.88f))
+        add(1.0f to color.copy(alpha = dimAlpha))
     }.toTypedArray()
 }
 
@@ -132,6 +128,7 @@ internal fun DimOverlay(
     componentSize: IntSize,
     dimState: DimState,
     rippleIntensity: Float = SpotlightDefaults.RippleIntensity,
+    rippleColor: Color = SpotlightDefaults.RippleColor,
     textBoxCornerRadius: Dp = 8.dp
 ) {
     val objectHighlightWidth = componentSize.width
@@ -142,13 +139,14 @@ internal fun DimOverlay(
     Box(Modifier.fillMaxSize()) {
         if (dimState == DimState.RUNNING) {
             Canvas(
-                modifier = modifier.fillMaxSize(),
+                modifier = modifier
+                    .fillMaxSize()
+                    .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen },
                 onDraw = {
                     val cx = highlightXCoordinate + objectHighlightWidth / 2f
                     val cy = highlightYCoordinate + objectHighlightHeight / 2f
                     val center = Offset(cx, cy)
 
-                    // Clear zone radius — fully transparent area around the spotlight target
                     val clearRadius = when (highlightShape) {
                         CircleShape -> objectHighlightWidth / 2f
                         else -> sqrt(
@@ -157,17 +155,15 @@ internal fun DimOverlay(
                         )
                     } + 4.dp.toPx()
 
-                    // Ripple zone extends outward from the clear zone edge
                     val rippleExtent = clearRadius * 2.5f
                     val gradientRadius = clearRadius + rippleExtent
 
                     val dimAlpha = 0.5f
 
-                    // Ratio where the fully clear spotlight zone ends
                     val r = clearRadius / gradientRadius
                     val s = 1f - r
 
-                    val colorStops = buildRippleColorStops(r, s, dimAlpha, rippleIntensity)
+                    val colorStops = buildRippleColorStops(r, s, dimAlpha, rippleIntensity, rippleColor)
 
                     val rippleBrush = Brush.radialGradient(
                         colorStops = colorStops,
@@ -176,7 +172,33 @@ internal fun DimOverlay(
                         tileMode = TileMode.Clamp
                     )
 
+                    // Layer 1: draw the ripple gradient over the full screen
                     drawRect(brush = rippleBrush)
+
+                    // Layer 2: punch out the exact shape of the spotlight target
+                    val padding = 4.dp.toPx()
+                    val shapeSize = Size(
+                        objectHighlightWidth.toFloat() + padding * 2,
+                        objectHighlightHeight.toFloat() + padding * 2
+                    )
+                    val outline = highlightShape.createOutline(
+                        size = shapeSize,
+                        layoutDirection = layoutDirection,
+                        density = this
+                    )
+                    val spotlightPath = Path().apply {
+                        when (outline) {
+                            is Outline.Rectangle -> addRect(outline.rect)
+                            is Outline.Rounded -> addRoundRect(outline.roundRect)
+                            is Outline.Generic -> addPath(outline.path)
+                        }
+                    }
+                    translate(
+                        left = highlightXCoordinate - padding,
+                        top = highlightYCoordinate - padding
+                    ) {
+                        drawPath(spotlightPath, Color.Black, blendMode = BlendMode.Clear)
+                    }
                 }
             )
         }

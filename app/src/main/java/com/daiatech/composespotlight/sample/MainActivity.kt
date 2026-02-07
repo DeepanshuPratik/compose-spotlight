@@ -4,6 +4,9 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -14,7 +17,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Home
@@ -40,12 +46,15 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -74,7 +83,7 @@ class MainActivity : ComponentActivity() {
 
                 LaunchedEffect(Unit) {
                     controller.configure("sample_onboarding") {
-                        initialQueue = listOf("search", "notifications", "fab", "profile")
+                        initialQueue = listOf("search", "notifications", "fab", "profile", "settings")
                         autoDim = true
                     }
                     controller.dequeueAndSpotlight(groundDimming = true)
@@ -86,18 +95,29 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+private val colorOptions = listOf(
+    "Black" to Color.Black,
+    "Blue" to Color(0xFF1A237E),
+    "Purple" to Color(0xFF4A148C),
+    "Teal" to Color(0xFF004D40),
+    "Red" to Color(0xFFB71C1C),
+)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SampleScreen(controller: SpotlightController) {
     val scope = rememberCoroutineScope()
     val dimState by controller.dimState.collectAsState()
     var rippleIntensity by rememberSaveable { mutableFloatStateOf(SpotlightDefaults.RippleIntensity) }
+    var rippleColor by remember { mutableStateOf(SpotlightDefaults.RippleColor) }
+    var selectedColorIndex by rememberSaveable { mutableStateOf(0) }
 
     Box(modifier = Modifier.fillMaxSize()) {
         DimmingGround(
             controller = controller,
             modifier = Modifier.fillMaxSize(),
-            rippleIntensity = rippleIntensity
+            rippleIntensity = rippleIntensity,
+            rippleColor = rippleColor
         ) {
             Scaffold(
                 topBar = {
@@ -111,7 +131,8 @@ fun SampleScreen(controller: SpotlightController) {
                             SpotlightZone(
                                 key = "search",
                                 controller = controller,
-                                message = "Step 1/4: Tap here to search across all your content"
+                                message = "Step 1/5: Tap here to search across all your content",
+                                shape = CircleShape
                             ) {
                                 IconButton(onClick = { }) {
                                     Icon(Icons.Default.Search, contentDescription = "Search")
@@ -121,7 +142,8 @@ fun SampleScreen(controller: SpotlightController) {
                             SpotlightZone(
                                 key = "notifications",
                                 controller = controller,
-                                message = "Step 2/4: Check your latest notifications here"
+                                message = "Step 2/5: Check your latest notifications here",
+                                shape = CircleShape
                             ) {
                                 IconButton(onClick = { }) {
                                     Icon(Icons.Default.Notifications, contentDescription = "Notifications")
@@ -132,17 +154,27 @@ fun SampleScreen(controller: SpotlightController) {
                 },
                 bottomBar = {
                     BottomAppBar {
-                        NavigationBarItem(
-                            icon = { Icon(Icons.Default.Home, contentDescription = "Home") },
-                            label = { Text("Home") },
-                            selected = true,
-                            onClick = { }
-                        )
+                        SpotlightZone(
+                            key = "home",
+                            controller = controller,
+                            message = "Home",
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            NavigationBarItem(
+                                icon = { Icon(Icons.Default.Home, contentDescription = "Home") },
+                                label = { Text("Home") },
+                                selected = true,
+                                onClick = { }
+                            )
+                        }
 
                         SpotlightZone(
                             key = "profile",
                             controller = controller,
-                            message = "Step 4/4: View and edit your profile from here"
+                            message = "Step 4/5: View and edit your profile from here",
+                            shape = CircleShape,
+                            modifier = Modifier.weight(1f)
                         ) {
                             NavigationBarItem(
                                 icon = { Icon(Icons.Default.Person, contentDescription = "Profile") },
@@ -152,19 +184,28 @@ fun SampleScreen(controller: SpotlightController) {
                             )
                         }
 
-                        NavigationBarItem(
-                            icon = { Icon(Icons.Default.Settings, contentDescription = "Settings") },
-                            label = { Text("Settings") },
-                            selected = false,
-                            onClick = { }
-                        )
+                        SpotlightZone(
+                            key = "settings",
+                            controller = controller,
+                            message = "Step 5/5: Customize your app settings",
+                            shape = RectangleShape,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            NavigationBarItem(
+                                icon = { Icon(Icons.Default.Settings, contentDescription = "Settings") },
+                                label = { Text("Settings") },
+                                selected = false,
+                                onClick = { }
+                            )
+                        }
                     }
                 },
                 floatingActionButton = {
                     SpotlightZone(
                         key = "fab",
                         controller = controller,
-                        message = "Step 3/4: Create something new!"
+                        message = "Step 3/5: Create something new!",
+                        shape = CircleShape
                     ) {
                         FloatingActionButton(
                             onClick = { },
@@ -179,7 +220,7 @@ fun SampleScreen(controller: SpotlightController) {
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(innerPadding)
-                        .padding(24.dp),
+                        .padding(horizontal = 24.dp, vertical = 16.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
@@ -190,17 +231,16 @@ fun SampleScreen(controller: SpotlightController) {
                         textAlign = TextAlign.Center
                     )
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
 
                     Text(
-                        text = "Tap anywhere during the tour to progress.\n" +
-                                "Use the slider below to adjust ripple intensity.",
+                        text = "Tap anywhere during the tour to progress.",
                         style = MaterialTheme.typography.bodyLarge,
                         textAlign = TextAlign.Center,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
 
-                    Spacer(modifier = Modifier.height(32.dp))
+                    Spacer(modifier = Modifier.height(28.dp))
 
                     // Ripple intensity control
                     Text(
@@ -220,11 +260,58 @@ fun SampleScreen(controller: SpotlightController) {
                     )
 
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Text("Smooth", style = MaterialTheme.typography.labelSmall)
                         Text("Max ripple", style = MaterialTheme.typography.labelSmall)
+                    }
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    // Ripple color picker
+                    Text(
+                        text = "Ripple Color: ${colorOptions[selectedColorIndex].first}",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        colorOptions.forEachIndexed { index, (_, color) ->
+                            val isSelected = index == selectedColorIndex
+                            Box(
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .clip(CircleShape)
+                                    .background(color, CircleShape)
+                                    .then(
+                                        if (isSelected) {
+                                            Modifier.border(
+                                                width = 3.dp,
+                                                color = MaterialTheme.colorScheme.primary,
+                                                shape = CircleShape
+                                            )
+                                        } else {
+                                            Modifier.border(
+                                                width = 1.dp,
+                                                color = MaterialTheme.colorScheme.outline,
+                                                shape = CircleShape
+                                            )
+                                        }
+                                    )
+                                    .clickable {
+                                        selectedColorIndex = index
+                                        rippleColor = color
+                                    }
+                            )
+                        }
                     }
 
                     Spacer(modifier = Modifier.height(24.dp))
@@ -232,7 +319,7 @@ fun SampleScreen(controller: SpotlightController) {
                     Button(
                         onClick = {
                             scope.launch {
-                                controller.enqueueAll(listOf("search", "notifications", "fab", "profile"))
+                                controller.enqueueAll(listOf("search", "notifications", "fab", "profile", "settings"))
                                 controller.dequeueAndSpotlight(groundDimming = true)
                             }
                         }

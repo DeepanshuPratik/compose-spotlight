@@ -17,6 +17,7 @@
 package com.daiatech.composespotlight
 
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
 /**
@@ -41,4 +42,9 @@ object SpotlightDefaults {
      * Range: 0f (no ripple, smooth gradient) to 1f (maximum ripple contrast).
      */
     const val RippleIntensity = 0.6f
+
+    /**
+     * Default color used for the spotlight dimming overlay and ripple rings.
+     */
+    val RippleColor: Color = Color.Black
 }

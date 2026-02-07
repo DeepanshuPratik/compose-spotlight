@@ -19,6 +19,7 @@ package com.daiatech.composespotlight
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.daiatech.composespotlight.internal.DimmingGroundImpl
 
@@ -31,6 +32,8 @@ import com.daiatech.composespotlight.internal.DimmingGroundImpl
  *   `0f` produces a smooth gradient with no visible rings.
  *   `1f` produces maximum contrast between ring peaks and troughs.
  *   Default is [SpotlightDefaults.RippleIntensity].
+ * @param rippleColor The color used for the dimming overlay and ripple rings.
+ *   Default is [SpotlightDefaults.RippleColor] (black).
  * @param content The content of the spotlight ground.
  */
 @Composable
@@ -38,6 +41,7 @@ fun DimmingGround(
     controller: SpotlightController,
     modifier: Modifier = Modifier,
     rippleIntensity: Float = SpotlightDefaults.RippleIntensity,
+    rippleColor: Color = SpotlightDefaults.RippleColor,
     content: @Composable () -> Unit
 ) {
     val currentSpotlightZone by controller.zoneLocationState.collectAsStateWithLifecycle()
@@ -50,6 +54,7 @@ fun DimmingGround(
             size = it.size,
             shape = it.shape,
             rippleIntensity = rippleIntensity.coerceIn(0f, 1f),
+            rippleColor = rippleColor,
             modifier = modifier,
             content = content
         )
