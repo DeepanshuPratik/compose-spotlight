@@ -34,6 +34,9 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
@@ -48,6 +51,7 @@ internal fun DimmingGroundImpl(
     position: IntOffset,
     size: IntSize,
     shape: Shape,
+    forcedNavigation: Boolean = false,
     modifier: Modifier = Modifier,
     rippleIntensity: Float = SpotlightDefaults.RippleIntensity,
     rippleColor: Color = SpotlightDefaults.RippleColor,
@@ -64,6 +68,87 @@ internal fun DimmingGroundImpl(
             rippleIntensity = rippleIntensity,
             rippleColor = rippleColor
         )
+        // When forcedNavigation is active, block all touches outside the spotlight zone.
+        // Uses 4 separate touch-blocking regions (top, bottom, left, right) arranged
+        // around the spotlight zone, leaving a hole so touches reach the content below.
+        if (dimState == DimState.RUNNING && forcedNavigation) {
+            TouchBlockerWithHole(
+                holePosition = position,
+                holeSize = size,
+                modifier = Modifier.fillMaxSize()
+            )
+        }
+    }
+}
+
+/**
+ * Lays out 4 touch-consuming rectangles around a hole defined by [holePosition] and [holeSize].
+ *
+ * ```
+ * ┌──────────────────────┐
+ * │      TOP STRIP       │  (full width, from y=0 to hole top)
+ * ├────┬────────────┬────┤
+ * │LEFT│   (hole)   │RGHT│  (left/right strips beside the hole)
+ * ├────┴────────────┴────┤
+ * │     BOTTOM STRIP     │  (full width, from hole bottom to screen bottom)
+ * └──────────────────────┘
+ * ```
+ *
+ * The hole area has no overlay, so touches there pass through to the content below.
+ */
+@Composable
+private fun TouchBlockerWithHole(
+    holePosition: IntOffset,
+    holeSize: IntSize,
+    modifier: Modifier = Modifier
+) {
+    val consumeTouches = Modifier.pointerInput(Unit) {
+        awaitPointerEventScope {
+            while (true) {
+                val event = awaitPointerEvent()
+                event.changes.forEach { it.consume() }
+            }
+        }
+    }
+
+    Layout(
+        content = {
+            // 0: Top strip
+            Box(consumeTouches)
+            // 1: Bottom strip
+            Box(consumeTouches)
+            // 2: Left strip
+            Box(consumeTouches)
+            // 3: Right strip
+            Box(consumeTouches)
+        },
+        modifier = modifier
+    ) { measurables, constraints ->
+        val totalW = constraints.maxWidth
+        val totalH = constraints.maxHeight
+
+        val holeLeft = holePosition.x.coerceIn(0, totalW)
+        val holeTop = holePosition.y.coerceIn(0, totalH)
+        val holeRight = (holePosition.x + holeSize.width).coerceIn(0, totalW)
+        val holeBottom = (holePosition.y + holeSize.height).coerceIn(0, totalH)
+
+        val topH = holeTop
+        val bottomH = totalH - holeBottom
+        val midH = holeBottom - holeTop
+        val leftW = holeLeft
+        val rightW = totalW - holeRight
+
+        val topPlaceable = measurables[0].measure(Constraints.fixed(totalW, topH.coerceAtLeast(0)))
+        val bottomPlaceable = measurables[1].measure(Constraints.fixed(totalW, bottomH.coerceAtLeast(0)))
+        val leftPlaceable = measurables[2].measure(Constraints.fixed(leftW.coerceAtLeast(0), midH.coerceAtLeast(0)))
+        val rightPlaceable = measurables[3].measure(Constraints.fixed(rightW.coerceAtLeast(0), midH.coerceAtLeast(0)))
+
+        layout(totalW, totalH) {
+            topPlaceable.place(0, 0)
+            bottomPlaceable.place(0, holeBottom)
+            leftPlaceable.place(0, holeTop)
+            rightPlaceable.place(holeRight, holeTop)
+        }
     }
 }
 

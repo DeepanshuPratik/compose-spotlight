@@ -30,5 +30,6 @@ data class SpotlightZoneData(
     val layoutCoordinates: LayoutCoordinates,
     val tooltipState: TooltipState,
     val audioPlayer: ExoPlayer?,
-    val shape: Shape
+    val shape: Shape,
+    val forcedNavigation: Boolean = false
 )

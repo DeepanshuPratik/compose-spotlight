@@ -81,6 +81,8 @@ import kotlinx.coroutines.launch
  * @param tooltipPosition Vertical position of the tooltip (TOP, BOTTOM, or AUTO for automatic detection)
  * @param tooltipAlignment Horizontal alignment of the tooltip (START, CENTER, END, or AUTO for automatic detection)
  * @param disableTouch Whether touch should be disabled on this spotlight zone
+ * @param forcedNavigation When true, only the spotlighted zone is interactive and all other
+ *   touches are blocked. Useful for guided onboarding where the user must tap the highlighted element.
  * @param shape Shape of the spotlight cutout
  * @param caretSize Size of the tooltip caret
  * @param toolTipMaxWidth Maximum width of the tooltip
@@ -96,6 +98,7 @@ fun SpotlightZone(
     tooltipPosition: TooltipPosition = TooltipPosition.AUTO,
     tooltipAlignment: TooltipAlignment = TooltipAlignment.AUTO,
     disableTouch: Boolean = false,
+    forcedNavigation: Boolean = false,
     shape: Shape = RectangleShape,
     caretSize: DpSize = DpSize(SpotlightDefaults.caretHeight, SpotlightDefaults.caretWidth),
     toolTipMaxWidth: Dp = SpotlightDefaults.PlainTooltipMaxWidth,
@@ -115,6 +118,7 @@ fun SpotlightZone(
             tooltipPosition = tooltipPosition,
             tooltipAlignment = tooltipAlignment,
             disableTouch = disableTouch,
+            forcedNavigation = forcedNavigation,
             shape = shape,
             caretSize = caretSize,
             toolTipMaxWidth = toolTipMaxWidth,
@@ -134,6 +138,7 @@ internal fun SpotlightZoneCore(
     tooltipPosition: TooltipPosition = TooltipPosition.AUTO,
     tooltipAlignment: TooltipAlignment = TooltipAlignment.AUTO,
     disableTouch: Boolean = false,
+    forcedNavigation: Boolean = false,
     shape: Shape = RectangleShape,
     caretSize: DpSize = DpSize(SpotlightDefaults.caretHeight, SpotlightDefaults.caretWidth),
     toolTipMaxWidth: Dp = SpotlightDefaults.PlainTooltipMaxWidth,
@@ -182,7 +187,8 @@ internal fun SpotlightZoneCore(
                 layoutCoordinates = coordinates,
                 tooltipState = tooltipState,
                 audioPlayer = exoPlayer,
-                shape = shape
+                shape = shape,
+                forcedNavigation = forcedNavigation
             )
             controller.registerZone(key, zone)
         }
@@ -431,6 +437,7 @@ fun TooltipScope.Tooltip(
  * @param shape Shape of the spotlight cutout (e.g. CircleShape, RoundedCornerShape, RectangleShape)
  * @param tooltipPosition Vertical position of the tooltip (TOP, BOTTOM, or AUTO for automatic detection)
  * @param tooltipAlignment Horizontal alignment of the tooltip (START, CENTER, END, or AUTO for automatic detection)
+ * @param forcedNavigation When true, only this zone is interactive during spotlight
  * @param audioResId Optional raw resource ID for audio to play with this message
  * @param content Composable content to be highlighted by the spotlight
  *
@@ -443,6 +450,7 @@ fun TooltipScope.Tooltip(
  *     shape = RoundedCornerShape(16.dp),
  *     tooltipPosition = TooltipPosition.AUTO,
  *     tooltipAlignment = TooltipAlignment.END,
+ *     forcedNavigation = true,
  *     audioResId = R.raw.profile_audio
  * ) {
  *     ProfileButton()
@@ -458,6 +466,7 @@ fun SpotlightZone(
     shape: Shape = RectangleShape,
     tooltipPosition: TooltipPosition = TooltipPosition.AUTO,
     tooltipAlignment: TooltipAlignment = TooltipAlignment.AUTO,
+    forcedNavigation: Boolean = false,
     @RawRes audioResId: Int? = null,
     content: @Composable () -> Unit
 ) {
@@ -482,6 +491,7 @@ fun SpotlightZone(
         messages = messages,
         tooltipPosition = tooltipPosition,
         tooltipAlignment = tooltipAlignment,
+        forcedNavigation = forcedNavigation,
         shape = shape,
         content = content
     )
@@ -527,6 +537,7 @@ fun SpotlightZone(
     modifier: Modifier = Modifier,
     tooltipPosition: TooltipPosition = TooltipPosition.AUTO,
     tooltipAlignment: TooltipAlignment = TooltipAlignment.AUTO,
+    forcedNavigation: Boolean = false,
     shape: Shape = RectangleShape,
     onFinish: () -> Unit = {},
     content: @Composable () -> Unit
@@ -538,6 +549,7 @@ fun SpotlightZone(
         messages = listOf(message),
         tooltipPosition = tooltipPosition,
         tooltipAlignment = tooltipAlignment,
+        forcedNavigation = forcedNavigation,
         shape = shape,
         onFinish = onFinish,
         content = content
@@ -594,6 +606,11 @@ class SpotlightZoneConfig {
      * Whether touch input should be disabled when this zone is spotlighted.
      */
     var disableTouch: Boolean = false
+
+    /**
+     * When true, only this zone is interactive during spotlight; all other touches are blocked.
+     */
+    var forcedNavigation: Boolean = false
 
     /**
      * Shape of the spotlight cutout.
@@ -678,6 +695,7 @@ fun SpotlightZone(
         tooltipPosition = configuration.tooltipPosition,
         tooltipAlignment = configuration.tooltipAlignment,
         disableTouch = configuration.disableTouch,
+        forcedNavigation = configuration.forcedNavigation,
         shape = configuration.shape,
         onFinish = configuration.onFinish,
         content = content

@@ -199,13 +199,15 @@ internal class SpotlightControllerImpl(private val spotlightPreferences: Spotlig
                             zone.layoutCoordinates.size.width,
                             zone.layoutCoordinates.size.height
                         ),
-                        shape = zone.shape
+                        shape = zone.shape,
+                        forcedNavigation = zone.forcedNavigation
                     )
                 } else {
                     SpotlightLocation(
                         offset = IntOffset.Companion.Zero,
                         size = IntSize.Companion.Zero,
-                        shape = zone.shape
+                        shape = zone.shape,
+                        forcedNavigation = zone.forcedNavigation
                     )
                 }
             }

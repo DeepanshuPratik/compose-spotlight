@@ -27,5 +27,6 @@ import androidx.compose.ui.unit.IntSize
 data class SpotlightLocation(
     val offset: IntOffset = IntOffset.Zero,
     val size: IntSize = IntSize.Zero,
-    val shape: Shape = CircleShape
+    val shape: Shape = CircleShape,
+    val forcedNavigation: Boolean = false
 )

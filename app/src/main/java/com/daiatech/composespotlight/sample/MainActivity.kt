@@ -1,6 +1,7 @@
 package com.daiatech.composespotlight.sample
 
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -23,6 +24,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
@@ -36,6 +38,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
@@ -109,10 +112,14 @@ private val colorOptions = listOf(
 @Composable
 fun SampleScreen(controller: SpotlightController) {
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
     val dimState by controller.dimState.collectAsState()
+    val zoneLocation by controller.zoneLocationState.collectAsState()
     var rippleIntensity by rememberSaveable { mutableFloatStateOf(SpotlightDefaults.RippleIntensity) }
     var rippleColor by remember { mutableStateOf(SpotlightDefaults.RippleColor) }
     var selectedColorIndex by rememberSaveable { mutableStateOf(0) }
+    var showSearchBar by rememberSaveable { mutableStateOf(false) }
+    var searchQuery by rememberSaveable { mutableStateOf("") }
 
     Box(modifier = Modifier.fillMaxSize()) {
         DimmingGround(
@@ -134,9 +141,16 @@ fun SampleScreen(controller: SpotlightController) {
                                 key = "search",
                                 controller = controller,
                                 message = "Step 1/5: Tap here to search across all your content",
-                                shape = CircleShape
+                                shape = CircleShape,
+                                forcedNavigation = true
                             ) {
-                                IconButton(onClick = { }) {
+                                IconButton(onClick = {
+                                    scope.launch {
+                                        showSearchBar = true
+                                        controller.enqueue("search_bar")
+                                        controller.dequeueAndSpotlight(groundDimming = true)
+                                    }
+                                }) {
                                     Icon(Icons.Default.Search, contentDescription = "Search")
                                 }
                             }
@@ -147,7 +161,9 @@ fun SampleScreen(controller: SpotlightController) {
                                 message = "Step 2/5: Check your latest notifications here",
                                 shape = CircleShape
                             ) {
-                                IconButton(onClick = { }) {
+                                IconButton(onClick = {
+                                    Toast.makeText(context, "Notifications opened!", Toast.LENGTH_SHORT).show()
+                                }) {
                                     Icon(Icons.Default.Notifications, contentDescription = "Notifications")
                                 }
                             }
@@ -169,7 +185,9 @@ fun SampleScreen(controller: SpotlightController) {
                                 icon = { Icon(Icons.Default.Home, contentDescription = "Home") },
                                 label = { Text("Home") },
                                 selected = true,
-                                onClick = { }
+                                onClick = {
+                                    Toast.makeText(context, "Home tapped!", Toast.LENGTH_SHORT).show()
+                                }
                             )
                         }
 
@@ -185,7 +203,9 @@ fun SampleScreen(controller: SpotlightController) {
                                 icon = { Icon(Icons.Default.Person, contentDescription = "Profile") },
                                 label = { Text("Profile") },
                                 selected = false,
-                                onClick = { }
+                                onClick = {
+                                    Toast.makeText(context, "Profile tapped!", Toast.LENGTH_SHORT).show()
+                                }
                             )
                         }
 
@@ -202,7 +222,9 @@ fun SampleScreen(controller: SpotlightController) {
                                 icon = { Icon(Icons.Default.Settings, contentDescription = "Settings") },
                                 label = { Text("Settings") },
                                 selected = false,
-                                onClick = { }
+                                onClick = {
+                                    Toast.makeText(context, "Settings tapped!", Toast.LENGTH_SHORT).show()
+                                }
                             )
                         }
                     }
@@ -211,11 +233,16 @@ fun SampleScreen(controller: SpotlightController) {
                     SpotlightZone(
                         key = "fab",
                         controller = controller,
-                        message = "Step 3/5: Create something new!",
-                        shape = CircleShape
+                        message = "Step 3/5: Tap the + button to continue!",
+                        shape = CircleShape,
+                        forcedNavigation = true
                     ) {
                         FloatingActionButton(
-                            onClick = { },
+                            onClick = {
+                                scope.launch {
+                                    controller.dequeueAndSpotlight(groundDimming = true)
+                                }
+                            },
                             shape = CircleShape
                         ) {
                             Icon(Icons.Default.Add, contentDescription = "Add")
@@ -223,122 +250,167 @@ fun SampleScreen(controller: SpotlightController) {
                     }
                 }
             ) { innerPadding ->
-                Column(
+                Box(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(innerPadding)
-                        .padding(horizontal = 24.dp, vertical = 16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
                 ) {
-                    Text(
-                        text = "Welcome to Compose Spotlight",
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold,
-                        textAlign = TextAlign.Center
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    Text(
-                        text = "Tap anywhere during the tour to progress.",
-                        style = MaterialTheme.typography.bodyLarge,
-                        textAlign = TextAlign.Center,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-
-                    Spacer(modifier = Modifier.height(28.dp))
-
-                    // Ripple intensity control
-                    Text(
-                        text = "Ripple Intensity: ${"%.0f".format(rippleIntensity * 100)}%",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold
-                    )
-
-                    Slider(
-                        value = rippleIntensity,
-                        onValueChange = { rippleIntensity = it },
-                        valueRange = 0f..1f,
-                        steps = 9,
+                    Column(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp)
-                    )
-
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween
+                            .fillMaxSize()
+                            .padding(horizontal = 24.dp, vertical = 16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
                     ) {
-                        Text("Smooth", style = MaterialTheme.typography.labelSmall)
-                        Text("Max ripple", style = MaterialTheme.typography.labelSmall)
-                    }
+                        Text(
+                            text = "Welcome to Compose Spotlight",
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.Bold,
+                            textAlign = TextAlign.Center
+                        )
 
-                    Spacer(modifier = Modifier.height(20.dp))
+                        Spacer(modifier = Modifier.height(12.dp))
 
-                    // Ripple color picker
-                    Text(
-                        text = "Ripple Color: ${colorOptions[selectedColorIndex].first}",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold
-                    )
+                        Text(
+                            text = "Tap anywhere during the tour to progress.",
+                            style = MaterialTheme.typography.bodyLarge,
+                            textAlign = TextAlign.Center,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(28.dp))
 
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        colorOptions.forEachIndexed { index, (_, color) ->
-                            val isSelected = index == selectedColorIndex
-                            Box(
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .clip(CircleShape)
-                                    .background(color, CircleShape)
-                                    .then(
-                                        if (isSelected) {
-                                            Modifier.border(
-                                                width = 3.dp,
-                                                color = MaterialTheme.colorScheme.primary,
-                                                shape = CircleShape
-                                            )
-                                        } else {
-                                            Modifier.border(
-                                                width = 1.dp,
-                                                color = MaterialTheme.colorScheme.outline,
-                                                shape = CircleShape
-                                            )
-                                        }
-                                    )
-                                    .clickable {
-                                        selectedColorIndex = index
-                                        rippleColor = color
-                                    }
-                            )
+                        // Ripple intensity control
+                        Text(
+                            text = "Ripple Intensity: ${"%.0f".format(rippleIntensity * 100)}%",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+
+                        Slider(
+                            value = rippleIntensity,
+                            onValueChange = { rippleIntensity = it },
+                            valueRange = 0f..1f,
+                            steps = 9,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp)
+                        )
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text("Smooth", style = MaterialTheme.typography.labelSmall)
+                            Text("Max ripple", style = MaterialTheme.typography.labelSmall)
                         }
-                    }
 
-                    Spacer(modifier = Modifier.height(24.dp))
+                        Spacer(modifier = Modifier.height(20.dp))
 
-                    Button(
-                        onClick = {
-                            scope.launch {
-                                controller.enqueueAll(listOf("search", "notifications", "fab", "profile", "settings"))
-                                controller.dequeueAndSpotlight(groundDimming = true)
+                        // Ripple color picker
+                        Text(
+                            text = "Ripple Color: ${colorOptions[selectedColorIndex].first}",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            colorOptions.forEachIndexed { index, (_, color) ->
+                                val isSelected = index == selectedColorIndex
+                                Box(
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .clip(CircleShape)
+                                        .background(color, CircleShape)
+                                        .then(
+                                            if (isSelected) {
+                                                Modifier.border(
+                                                    width = 3.dp,
+                                                    color = MaterialTheme.colorScheme.primary,
+                                                    shape = CircleShape
+                                                )
+                                            } else {
+                                                Modifier.border(
+                                                    width = 1.dp,
+                                                    color = MaterialTheme.colorScheme.outline,
+                                                    shape = CircleShape
+                                                )
+                                            }
+                                        )
+                                        .clickable {
+                                            selectedColorIndex = index
+                                            rippleColor = color
+                                        }
+                                )
                             }
                         }
-                    ) {
-                        Text("Restart Tour")
+
+                        Spacer(modifier = Modifier.height(24.dp))
+
+                        Button(
+                            onClick = {
+                                scope.launch {
+                                    controller.enqueueAll(listOf("search", "notifications", "fab", "profile", "settings"))
+                                    controller.dequeueAndSpotlight(groundDimming = true)
+                                }
+                            }
+                        ) {
+                            Text("Restart Tour")
+                        }
+                    }
+
+                    // Floating search bar — appears when search icon is tapped
+                    if (showSearchBar) {
+                        SpotlightZone(
+                            key = "search_bar",
+                            controller = controller,
+                            message = "Type here! Only this bar is active during forced navigation.",
+                            shape = RoundedCornerShape(28.dp),
+                            forcedNavigation = true,
+                            tooltipPosition = TooltipPosition.BOTTOM,
+                            modifier = Modifier
+                                .align(Alignment.TopCenter)
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 8.dp)
+                        ) {
+                            OutlinedTextField(
+                                value = searchQuery,
+                                onValueChange = { searchQuery = it },
+                                placeholder = { Text("Search...") },
+                                leadingIcon = {
+                                    Icon(Icons.Default.Search, contentDescription = "Search")
+                                },
+                                trailingIcon = {
+                                    IconButton(onClick = {
+                                        showSearchBar = false
+                                        searchQuery = ""
+                                        scope.launch {
+                                            controller.dequeueAndSpotlight(groundDimming = false)
+                                        }
+                                    }) {
+                                        Icon(Icons.Default.Close, contentDescription = "Close")
+                                    }
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(28.dp),
+                                singleLine = true
+                            )
+                        }
                     }
                 }
             }
         }
 
-        // Tap overlay: visible only while the spotlight tour is active.
-        if (dimState == DimState.RUNNING) {
+        // Tap overlay: visible only while the spotlight tour is active
+        // and the current zone does NOT use forced navigation.
+        if (dimState == DimState.RUNNING && !zoneLocation.forcedNavigation) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
