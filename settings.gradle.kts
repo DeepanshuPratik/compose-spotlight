@@ -22,3 +22,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "compose-spotlight"
 include(":compose-spotlight")
+include(":app")

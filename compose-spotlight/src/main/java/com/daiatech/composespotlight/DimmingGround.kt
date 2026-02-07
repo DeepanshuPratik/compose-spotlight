@@ -27,12 +27,17 @@ import com.daiatech.composespotlight.internal.DimmingGroundImpl
  *
  * @param controller The spotlight controller to use.
  * @param modifier The modifier to be applied to the spotlight ground.
+ * @param rippleIntensity Controls the visibility of the ripple rings in the dimming overlay.
+ *   `0f` produces a smooth gradient with no visible rings.
+ *   `1f` produces maximum contrast between ring peaks and troughs.
+ *   Default is [SpotlightDefaults.RippleIntensity].
  * @param content The content of the spotlight ground.
  */
 @Composable
 fun DimmingGround(
     controller: SpotlightController,
     modifier: Modifier = Modifier,
+    rippleIntensity: Float = SpotlightDefaults.RippleIntensity,
     content: @Composable () -> Unit
 ) {
     val currentSpotlightZone by controller.zoneLocationState.collectAsStateWithLifecycle()
@@ -44,6 +49,7 @@ fun DimmingGround(
             position = it.offset,
             size = it.size,
             shape = it.shape,
+            rippleIntensity = rippleIntensity.coerceIn(0f, 1f),
             modifier = modifier,
             content = content
         )

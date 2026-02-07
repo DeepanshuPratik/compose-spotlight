@@ -35,4 +35,10 @@ object SpotlightDefaults {
     val PlainTooltipHorizontalPadding = 8.dp
     val PlainTooltipContentPadding =
         PaddingValues(PlainTooltipHorizontalPadding, PlainTooltipVerticalPadding)
+
+    /**
+     * Default ripple intensity for the spotlight dimming effect.
+     * Range: 0f (no ripple, smooth gradient) to 1f (maximum ripple contrast).
+     */
+    const val RippleIntensity = 0.6f
 }
