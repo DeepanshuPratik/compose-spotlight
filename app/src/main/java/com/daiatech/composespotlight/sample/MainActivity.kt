@@ -67,6 +67,8 @@ import com.daiatech.composespotlight.SpotlightController
 import com.daiatech.composespotlight.SpotlightDefaults
 import com.daiatech.composespotlight.SpotlightManagerImpl
 import com.daiatech.composespotlight.SpotlightZone
+import com.daiatech.composespotlight.TooltipAlignment
+import com.daiatech.composespotlight.TooltipPosition
 import com.daiatech.composespotlight.configure
 import com.daiatech.composespotlight.models.DimState
 import kotlinx.coroutines.launch
@@ -159,6 +161,8 @@ fun SampleScreen(controller: SpotlightController) {
                             controller = controller,
                             message = "Home",
                             shape = RoundedCornerShape(12.dp),
+                            tooltipPosition = TooltipPosition.TOP,
+                            tooltipAlignment = TooltipAlignment.START,
                             modifier = Modifier.weight(1f)
                         ) {
                             NavigationBarItem(
@@ -174,6 +178,7 @@ fun SampleScreen(controller: SpotlightController) {
                             controller = controller,
                             message = "Step 4/5: View and edit your profile from here",
                             shape = CircleShape,
+                            tooltipPosition = TooltipPosition.TOP,
                             modifier = Modifier.weight(1f)
                         ) {
                             NavigationBarItem(
@@ -189,6 +194,8 @@ fun SampleScreen(controller: SpotlightController) {
                             controller = controller,
                             message = "Step 5/5: Customize your app settings",
                             shape = RectangleShape,
+                            tooltipPosition = TooltipPosition.TOP,
+                            tooltipAlignment = TooltipAlignment.END,
                             modifier = Modifier.weight(1f)
                         ) {
                             NavigationBarItem(

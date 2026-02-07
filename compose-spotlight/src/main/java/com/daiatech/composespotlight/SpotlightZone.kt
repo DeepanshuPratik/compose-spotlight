@@ -16,7 +16,6 @@
 
 package com.daiatech.composespotlight
 
-import android.content.res.Configuration
 import androidx.annotation.RawRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -43,22 +42,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.CacheDrawScope
-import androidx.compose.ui.draw.DrawResult
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.layout.LayoutCoordinates
-import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.platform.LocalView
-import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.IntOffset
@@ -66,7 +57,6 @@ import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.isSpecified
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogWindowProvider
 import androidx.compose.ui.window.PopupPositionProvider
@@ -88,7 +78,8 @@ import kotlinx.coroutines.launch
  * @param key Unique identifier for this spotlight zone
  * @param modifier Modifier to be applied to the spotlight zone
  * @param messages Optional list of messages to be displayed in the tooltip
- * @param tooltipPosition Position of the tooltip relative to the content (TOP or BOTTOM)
+ * @param tooltipPosition Vertical position of the tooltip (TOP, BOTTOM, or AUTO for automatic detection)
+ * @param tooltipAlignment Horizontal alignment of the tooltip (START, CENTER, END, or AUTO for automatic detection)
  * @param disableTouch Whether touch should be disabled on this spotlight zone
  * @param shape Shape of the spotlight cutout
  * @param caretSize Size of the tooltip caret
@@ -102,7 +93,8 @@ fun SpotlightZone(
     key: String,
     modifier: Modifier = Modifier,
     messages: List<SpotlightMessage>? = null,
-    tooltipPosition: TooltipPosition = TooltipPosition.TOP,
+    tooltipPosition: TooltipPosition = TooltipPosition.AUTO,
+    tooltipAlignment: TooltipAlignment = TooltipAlignment.AUTO,
     disableTouch: Boolean = false,
     shape: Shape = RectangleShape,
     caretSize: DpSize = DpSize(SpotlightDefaults.caretHeight, SpotlightDefaults.caretWidth),
@@ -121,6 +113,7 @@ fun SpotlightZone(
             modifier = modifier,
             messages = messages,
             tooltipPosition = tooltipPosition,
+            tooltipAlignment = tooltipAlignment,
             disableTouch = disableTouch,
             shape = shape,
             caretSize = caretSize,
@@ -138,7 +131,8 @@ internal fun SpotlightZoneCore(
     key: String,
     modifier: Modifier = Modifier,
     messages: List<SpotlightMessage>? = null,
-    tooltipPosition: TooltipPosition = TooltipPosition.TOP,
+    tooltipPosition: TooltipPosition = TooltipPosition.AUTO,
+    tooltipAlignment: TooltipAlignment = TooltipAlignment.AUTO,
     disableTouch: Boolean = false,
     shape: Shape = RectangleShape,
     caretSize: DpSize = DpSize(SpotlightDefaults.caretHeight, SpotlightDefaults.caretWidth),
@@ -150,7 +144,7 @@ internal fun SpotlightZoneCore(
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val tooltipState = rememberTooltipState(isPersistent = true)
-    val positionProvider = rememberTooltipPositionProvider(tooltipPosition)
+    val positionProvider = rememberTooltipPositionProvider(tooltipPosition, tooltipAlignment)
     var allowTouch = remember { mutableStateOf(true) }
     val isAppInForeground = remember { mutableStateOf(true) }
 
@@ -289,8 +283,6 @@ internal fun SpotlightZoneCore(
                                 end = 8.dp,
                                 bottom = 8.dp
                             ),
-                            tooltipPosition = tooltipPosition,
-                            caretSize = caretSize,
                             shape = RoundedCornerShape(8.dp),
                             contentColor = Color.Black,
                             containerColor = Color.White,
@@ -314,13 +306,14 @@ internal fun SpotlightZoneCore(
 
 @Composable
 fun rememberTooltipPositionProvider(
-    tooltipPosition: TooltipPosition = TooltipPosition.TOP,
+    tooltipPosition: TooltipPosition = TooltipPosition.AUTO,
+    tooltipAlignment: TooltipAlignment = TooltipAlignment.AUTO,
     spacingBetweenTooltipAndAnchor: Dp = 4.dp
 ): PopupPositionProvider {
     val tooltipAnchorSpacing = with(LocalDensity.current) {
         spacingBetweenTooltipAndAnchor.roundToPx()
     }
-    return remember(tooltipAnchorSpacing) {
+    return remember(tooltipAnchorSpacing, tooltipPosition, tooltipAlignment) {
         object : PopupPositionProvider {
             override fun calculatePosition(
                 anchorBounds: IntRect,
@@ -328,16 +321,59 @@ fun rememberTooltipPositionProvider(
                 layoutDirection: LayoutDirection,
                 popupContentSize: IntSize
             ): IntOffset {
-                val x = anchorBounds.left + (anchorBounds.width - popupContentSize.width) / 2
+                // --- Vertical positioning ---
+                val topY = anchorBounds.top - popupContentSize.height - tooltipAnchorSpacing
+                val bottomY = anchorBounds.bottom + tooltipAnchorSpacing
 
-                // Tooltip prefers to be above the anchor,
-                // but if this causes the tooltip to overlap with the anchor
-                // then we place it below the anchor
-                var y = anchorBounds.top - popupContentSize.height - tooltipAnchorSpacing
-                if (tooltipPosition == TooltipPosition.BOTTOM || y < 0) {
-                    y = anchorBounds.bottom + tooltipAnchorSpacing
+                val y = when (tooltipPosition) {
+                    TooltipPosition.TOP -> {
+                        if (topY >= 0) topY else bottomY
+                    }
+                    TooltipPosition.BOTTOM -> {
+                        if (bottomY + popupContentSize.height <= windowSize.height) bottomY
+                        else topY
+                    }
+                    TooltipPosition.AUTO -> {
+                        val anchorCenterY = anchorBounds.top + anchorBounds.height / 2
+                        if (anchorCenterY > windowSize.height / 2) {
+                            // Anchor in bottom half → prefer above
+                            if (topY >= 0) topY else bottomY
+                        } else {
+                            // Anchor in top half → prefer below
+                            if (bottomY + popupContentSize.height <= windowSize.height) bottomY
+                            else topY
+                        }
+                    }
                 }
-                return IntOffset(x, y)
+
+                // --- Horizontal alignment ---
+                val resolvedAlignment = when (tooltipAlignment) {
+                    TooltipAlignment.AUTO -> {
+                        val anchorCenterX = anchorBounds.left + anchorBounds.width / 2
+                        val third = windowSize.width / 3
+                        when {
+                            anchorCenterX < third -> TooltipAlignment.START
+                            anchorCenterX > third * 2 -> TooltipAlignment.END
+                            else -> TooltipAlignment.CENTER
+                        }
+                    }
+                    else -> tooltipAlignment
+                }
+
+                val x = when (resolvedAlignment) {
+                    TooltipAlignment.START -> anchorBounds.left
+                    TooltipAlignment.END -> anchorBounds.right - popupContentSize.width
+                    TooltipAlignment.CENTER,
+                    TooltipAlignment.AUTO -> {
+                        anchorBounds.left + (anchorBounds.width - popupContentSize.width) / 2
+                    }
+                }
+
+                // Clamp to screen bounds
+                val clampedX = x.coerceIn(0, (windowSize.width - popupContentSize.width).coerceAtLeast(0))
+                val clampedY = y.coerceIn(0, (windowSize.height - popupContentSize.height).coerceAtLeast(0))
+
+                return IntOffset(clampedX, clampedY)
             }
         }
     }
@@ -347,8 +383,6 @@ fun rememberTooltipPositionProvider(
 @ExperimentalMaterial3Api
 fun TooltipScope.Tooltip(
     modifier: Modifier,
-    tooltipPosition: TooltipPosition,
-    caretSize: DpSize,
     shape: Shape,
     contentColor: Color,
     containerColor: Color,
@@ -357,29 +391,8 @@ fun TooltipScope.Tooltip(
     maxWidth: Dp,
     content: @Composable () -> Unit
 ) {
-    val customModifier =
-        if (caretSize.isSpecified) {
-            val density = LocalDensity.current
-            val configuration = LocalConfiguration.current
-            Modifier
-                /* Blocked by https://github.com/karya-inc/karya-android-client/issues/1160
-                .drawCaret { anchorLayoutCoordinates ->
-                    drawCaretWithPath(
-                        density,
-                        configuration,
-                        containerColor,
-                        caretSize,
-                        tooltipPosition,
-                        anchorLayoutCoordinates
-                    )
-                } */
-                .then(modifier)
-        } else {
-            modifier
-        }
-
     Surface(
-        modifier = customModifier,
+        modifier = modifier,
         shape = shape,
         color = containerColor,
         tonalElevation = tonalElevation,
@@ -405,88 +418,6 @@ fun TooltipScope.Tooltip(
     }
 }
 
-@ExperimentalMaterial3Api
-private fun CacheDrawScope.drawCaretWithPath(
-    density: Density,
-    configuration: Configuration,
-    containerColor: Color,
-    caretSize: DpSize,
-    tooltipPosition: TooltipPosition,
-    anchorLayoutCoordinates: LayoutCoordinates?
-): DrawResult {
-    val path = Path()
-
-    if (anchorLayoutCoordinates != null) {
-        val caretHeightPx: Int
-        val caretWidthPx: Int
-        val screenWidthPx: Int
-        val tooltipAnchorSpacing: Int
-        with(density) {
-            caretHeightPx = caretSize.height.roundToPx()
-            caretWidthPx = caretSize.width.roundToPx()
-            screenWidthPx = configuration.screenWidthDp.dp.roundToPx()
-            tooltipAnchorSpacing = SpotlightDefaults.SpacingBetweenTooltipAndAnchor.roundToPx()
-        }
-        val anchorBounds = anchorLayoutCoordinates.boundsInWindow()
-        val anchorLeft = anchorBounds.left
-        val anchorRight = anchorBounds.right
-        val anchorTop = anchorBounds.top
-        val anchorMid = (anchorRight + anchorLeft) / 2
-        val anchorWidth = anchorRight - anchorLeft
-        val tooltipWidth = this.size.width
-        val tooltipHeight = this.size.height
-        val isCaretTop =
-            (tooltipPosition == TooltipPosition.BOTTOM) ||
-                anchorTop - tooltipHeight - tooltipAnchorSpacing < 0
-        val caretY = if (isCaretTop) {
-            0f
-        } else {
-            tooltipHeight
-        }
-
-        val position =
-            if (anchorMid + tooltipWidth / 2 > screenWidthPx) {
-                val anchorMidFromRightScreenEdge =
-                    screenWidthPx - anchorMid
-                val caretX = tooltipWidth - anchorMidFromRightScreenEdge
-                Offset(caretX, caretY)
-            } else {
-                val tooltipLeft =
-                    anchorLeft - (this.size.width / 2 - anchorWidth / 2)
-                val caretX = anchorMid - maxOf(tooltipLeft, 0f)
-                Offset(caretX, caretY)
-            }
-
-        if (isCaretTop) {
-            path.apply {
-                moveTo(x = position.x, y = position.y)
-                lineTo(x = position.x + caretWidthPx / 2, y = position.y)
-                lineTo(x = position.x, y = position.y - caretHeightPx)
-                lineTo(x = position.x - caretWidthPx / 2, y = position.y)
-                close()
-            }
-        } else {
-            path.apply {
-                moveTo(x = position.x, y = position.y)
-                lineTo(x = position.x + caretWidthPx / 2, y = position.y)
-                lineTo(x = position.x, y = position.y + caretHeightPx.toFloat())
-                lineTo(x = position.x - caretWidthPx / 2, y = position.y)
-                close()
-            }
-        }
-    }
-
-    return onDrawWithContent {
-        if (anchorLayoutCoordinates != null) {
-            drawContent()
-            drawPath(
-                path = path,
-                color = containerColor
-            )
-        }
-    }
-}
-
 /**
  * Simplified SpotlightZone composable for displaying a single text message with optional audio.
  *
@@ -498,6 +429,8 @@ private fun CacheDrawScope.drawCaretWithPath(
  * @param message The text message to display in the tooltip
  * @param modifier Modifier to be applied to the spotlight zone
  * @param shape Shape of the spotlight cutout (e.g. CircleShape, RoundedCornerShape, RectangleShape)
+ * @param tooltipPosition Vertical position of the tooltip (TOP, BOTTOM, or AUTO for automatic detection)
+ * @param tooltipAlignment Horizontal alignment of the tooltip (START, CENTER, END, or AUTO for automatic detection)
  * @param audioResId Optional raw resource ID for audio to play with this message
  * @param content Composable content to be highlighted by the spotlight
  *
@@ -508,6 +441,8 @@ private fun CacheDrawScope.drawCaretWithPath(
  *     controller = controller,
  *     message = "Tap here for profile",
  *     shape = RoundedCornerShape(16.dp),
+ *     tooltipPosition = TooltipPosition.AUTO,
+ *     tooltipAlignment = TooltipAlignment.END,
  *     audioResId = R.raw.profile_audio
  * ) {
  *     ProfileButton()
@@ -521,6 +456,8 @@ fun SpotlightZone(
     message: String,
     modifier: Modifier = Modifier,
     shape: Shape = RectangleShape,
+    tooltipPosition: TooltipPosition = TooltipPosition.AUTO,
+    tooltipAlignment: TooltipAlignment = TooltipAlignment.AUTO,
     @RawRes audioResId: Int? = null,
     content: @Composable () -> Unit
 ) {
@@ -543,6 +480,8 @@ fun SpotlightZone(
         controller = controller,
         modifier = modifier,
         messages = messages,
+        tooltipPosition = tooltipPosition,
+        tooltipAlignment = tooltipAlignment,
         shape = shape,
         content = content
     )
@@ -558,7 +497,8 @@ fun SpotlightZone(
  * @param controller Controller managing all spotlight zones
  * @param message The SpotlightMessage to display
  * @param modifier Modifier to be applied to the spotlight zone
- * @param tooltipPosition Position of the tooltip relative to the content (TOP or BOTTOM)
+ * @param tooltipPosition Vertical position of the tooltip (TOP, BOTTOM, or AUTO for automatic detection)
+ * @param tooltipAlignment Horizontal alignment of the tooltip (START, CENTER, END, or AUTO for automatic detection)
  * @param shape Shape of the spotlight cutout
  * @param onFinish Callback invoked when the spotlight sequence is completed
  * @param content Composable content to be highlighted by the spotlight
@@ -585,7 +525,8 @@ fun SpotlightZone(
     controller: SpotlightController,
     message: SpotlightMessage,
     modifier: Modifier = Modifier,
-    tooltipPosition: TooltipPosition = TooltipPosition.TOP,
+    tooltipPosition: TooltipPosition = TooltipPosition.AUTO,
+    tooltipAlignment: TooltipAlignment = TooltipAlignment.AUTO,
     shape: Shape = RectangleShape,
     onFinish: () -> Unit = {},
     content: @Composable () -> Unit
@@ -596,6 +537,7 @@ fun SpotlightZone(
         modifier = modifier,
         messages = listOf(message),
         tooltipPosition = tooltipPosition,
+        tooltipAlignment = tooltipAlignment,
         shape = shape,
         onFinish = onFinish,
         content = content
@@ -639,9 +581,14 @@ class SpotlightZoneConfig {
         private set
 
     /**
-     * Position of the tooltip relative to the spotlight zone.
+     * Vertical position of the tooltip relative to the spotlight zone (TOP, BOTTOM, or AUTO).
      */
-    var tooltipPosition: TooltipPosition = TooltipPosition.TOP
+    var tooltipPosition: TooltipPosition = TooltipPosition.AUTO
+
+    /**
+     * Horizontal alignment of the tooltip relative to the spotlight zone (START, CENTER, END, or AUTO).
+     */
+    var tooltipAlignment: TooltipAlignment = TooltipAlignment.AUTO
 
     /**
      * Whether touch input should be disabled when this zone is spotlighted.
@@ -729,6 +676,7 @@ fun SpotlightZone(
         modifier = modifier,
         messages = configuration.messages,
         tooltipPosition = configuration.tooltipPosition,
+        tooltipAlignment = configuration.tooltipAlignment,
         disableTouch = configuration.disableTouch,
         shape = configuration.shape,
         onFinish = configuration.onFinish,
@@ -736,4 +684,6 @@ fun SpotlightZone(
     )
 }
 
-enum class TooltipPosition { TOP, BOTTOM }
+enum class TooltipPosition { TOP, BOTTOM, AUTO }
+
+enum class TooltipAlignment { START, CENTER, END, AUTO }
