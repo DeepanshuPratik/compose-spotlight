@@ -40,13 +40,6 @@ android {
     buildFeatures {
         compose = true
     }
-
-    publishing {
-        singleVariant("release") {
-            withSourcesJar()
-            withJavadocJar()
-        }
-    }
 }
 
 dependencies {

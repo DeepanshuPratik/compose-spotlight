@@ -142,7 +142,8 @@ fun SampleScreen(controller: SpotlightController) {
                                 controller = controller,
                                 message = "Step 1/5: Tap here to search across all your content",
                                 shape = CircleShape,
-                                forcedNavigation = true
+                                forcedNavigation = true,
+                                audioResId = R.raw.prompt_1
                             ) {
                                 IconButton(onClick = {
                                     scope.launch {
@@ -159,7 +160,8 @@ fun SampleScreen(controller: SpotlightController) {
                                 key = "notifications",
                                 controller = controller,
                                 message = "Step 2/5: Check your latest notifications here",
-                                shape = CircleShape
+                                shape = CircleShape,
+                                audioResId = R.raw.prompt_2
                             ) {
                                 IconButton(onClick = {
                                     Toast.makeText(context, "Notifications opened!", Toast.LENGTH_SHORT).show()
@@ -197,6 +199,7 @@ fun SampleScreen(controller: SpotlightController) {
                             message = "Step 4/5: View and edit your profile from here",
                             shape = CircleShape,
                             tooltipPosition = TooltipPosition.TOP,
+                            audioResId = R.raw.prompt_4,
                             modifier = Modifier.weight(1f)
                         ) {
                             NavigationBarItem(
@@ -216,6 +219,7 @@ fun SampleScreen(controller: SpotlightController) {
                             shape = RectangleShape,
                             tooltipPosition = TooltipPosition.TOP,
                             tooltipAlignment = TooltipAlignment.END,
+                            audioResId = R.raw.prompt_5,
                             modifier = Modifier.weight(1f)
                         ) {
                             NavigationBarItem(
@@ -235,7 +239,8 @@ fun SampleScreen(controller: SpotlightController) {
                         controller = controller,
                         message = "Step 3/5: Tap the + button to continue!",
                         shape = CircleShape,
-                        forcedNavigation = true
+                        forcedNavigation = true,
+                        audioResId = R.raw.prompt_3
                     ) {
                         FloatingActionButton(
                             onClick = {
