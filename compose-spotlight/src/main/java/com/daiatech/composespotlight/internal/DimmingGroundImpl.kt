@@ -50,8 +50,6 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.daiatech.composespotlight.SpotlightDefaults
 import com.daiatech.composespotlight.models.DimState
-import kotlin.math.PI
-import kotlin.math.sin
 import kotlin.math.sqrt
 
 @Composable
@@ -62,9 +60,12 @@ internal fun DimmingGroundImpl(
     shape: Shape,
     forcedNavigation: Boolean = false,
     adaptComponentShape: Boolean = false,
+    spotlightPadding: Dp = SpotlightDefaults.SpotlightPadding,
     modifier: Modifier = Modifier,
     rippleIntensity: Float = SpotlightDefaults.RippleIntensity,
     rippleColor: Color = SpotlightDefaults.RippleColor,
+    rippleAnimated: Boolean = SpotlightDefaults.RippleAnimated,
+    rippleSpeedMs: Int = SpotlightDefaults.RippleSpeedMs,
     content: @Composable () -> Unit
 ) {
     Box(modifier) {
@@ -76,8 +77,11 @@ internal fun DimmingGroundImpl(
             componentSize = size,
             dimState = dimState,
             adaptComponentShape = adaptComponentShape,
+            spotlightPadding = spotlightPadding,
             rippleIntensity = rippleIntensity,
-            rippleColor = rippleColor
+            rippleColor = rippleColor,
+            rippleAnimated = rippleAnimated,
+            rippleSpeedMs = rippleSpeedMs
         )
         // When forcedNavigation is active, block all touches outside the spotlight zone.
         // Uses 4 separate touch-blocking regions (top, bottom, left, right) arranged
@@ -164,10 +168,13 @@ private fun TouchBlockerWithHole(
 }
 
 /**
- * Builds the ripple gradient color stops.
+ * Builds the ripple gradient color stops with expanding rings.
  *
- * [intensity] controls **how many rings** are visible (0f → 0 rings, 1f → 4 rings).
- * Inactive rings collapse into the smooth gradient baseline (`dimAlpha * position`).
+ * Each ring has a lifecycle (0 = born at spotlight center, 1 = faded at outer edge).
+ * The 4 rings are evenly staggered so that as [animationProgress] cycles 0→1,
+ * rings continuously expand outward like water ripples.
+ *
+ * [intensity] scales the peak/trough contrast (0f → no visible rings, 1f → maximum).
  * The ripple [color] is used throughout; the outer dim uses the same color for continuity.
  */
 private fun buildRippleColorStops(
@@ -178,52 +185,51 @@ private fun buildRippleColorStops(
     color: Color,
     animationProgress: Float = 0f
 ): Array<Pair<Float, Color>> {
-    data class Ring(
-        val peakPos: Float,
-        val troughPos: Float,
-        val peakOffset: Float,
-        val troughOffset: Float
-    )
+    data class Ring(val peakOffset: Float, val troughOffset: Float)
 
     val rings = listOf(
-        Ring(peakPos = 0.12f, troughPos = 0.22f, peakOffset = 0.06f, troughOffset = 0.18f),
-        Ring(peakPos = 0.32f, troughPos = 0.44f, peakOffset = 0.12f, troughOffset = 0.25f),
-        Ring(peakPos = 0.55f, troughPos = 0.67f, peakOffset = 0.15f, troughOffset = 0.28f),
-        Ring(peakPos = 0.78f, troughPos = 0.88f, peakOffset = 0.12f, troughOffset = 0.20f),
+        Ring(peakOffset = 0.08f, troughOffset = 0.20f),
+        Ring(peakOffset = 0.14f, troughOffset = 0.28f),
+        Ring(peakOffset = 0.16f, troughOffset = 0.30f),
+        Ring(peakOffset = 0.12f, troughOffset = 0.22f),
     )
 
-    val activeRings = intensity * rings.size
+    val numRings = rings.size
+    val ringWidth = 0.10f
 
     return buildList {
         add(0.0f to Color.Transparent)
         add(r to Color.Transparent)
 
-        val phase = animationProgress * 2f * PI.toFloat()
-
         for ((index, ring) in rings.withIndex()) {
-            val baseVisibility = (activeRings - index).coerceIn(0f, 1f)
+            // Each ring's lifecycle, evenly staggered (0 = center, 1 = edge)
+            val lifecycle = (animationProgress + index.toFloat() / numRings) % 1f
 
-            // Traveling wave: inner rings peak first, creating outward ripple illusion
-            // Wave amplitude scales with intensity: higher = more contrast between peaks/troughs
-            val spatialPhase = index.toFloat() / rings.size * 2f * PI.toFloat()
-            val wave = (sin(phase - spatialPhase) + 1f) / 2f
-            val waveFloor = 1f - intensity
-            val visibility = baseVisibility * (waveFloor + intensity * wave)
+            // Map lifecycle to gradient position (0.05..0.90)
+            val peakPos = 0.05f + lifecycle * 0.85f
+            val troughPos = (peakPos + ringWidth).coerceAtMost(0.93f)
 
-            val baselinePeak = dimAlpha * ring.peakPos
-            val baselineTrough = dimAlpha * ring.troughPos
+            // Fade in as ring leaves center, fade out as it reaches the edge
+            val fadeIn = (lifecycle / 0.15f).coerceAtMost(1f)
+            val fadeOut = ((1f - lifecycle) / 0.15f).coerceAtMost(1f)
+            val visibility = intensity * fadeIn * fadeOut
+
+            val baselinePeak = dimAlpha * peakPos
+            val baselineTrough = dimAlpha * troughPos
 
             val peakA = baselinePeak + ring.peakOffset * visibility
             val troughA = (baselineTrough - ring.troughOffset * visibility).coerceAtLeast(0f)
 
-            add(r + s * ring.peakPos to color.copy(alpha = peakA))
-            add(r + s * ring.troughPos to color.copy(alpha = troughA))
+            add(r + s * peakPos to color.copy(alpha = peakA))
+            add(r + s * troughPos to color.copy(alpha = troughA))
         }
 
         // Continuous settle using the same ripple color — no black transition
         add(r + s * 0.94f to color.copy(alpha = dimAlpha * 0.88f))
         add(1.0f to color.copy(alpha = dimAlpha))
-    }.toTypedArray()
+    }
+    .sortedBy { it.first }
+    .toTypedArray()
 }
 
 /**
@@ -267,8 +273,11 @@ internal fun DimOverlay(
     componentSize: IntSize,
     dimState: DimState,
     adaptComponentShape: Boolean = false,
+    spotlightPadding: Dp = SpotlightDefaults.SpotlightPadding,
     rippleIntensity: Float = SpotlightDefaults.RippleIntensity,
     rippleColor: Color = SpotlightDefaults.RippleColor,
+    rippleAnimated: Boolean = SpotlightDefaults.RippleAnimated,
+    rippleSpeedMs: Int = SpotlightDefaults.RippleSpeedMs,
     textBoxCornerRadius: Dp = 8.dp
 ) {
     val objectHighlightWidth = componentSize.width
@@ -278,16 +287,24 @@ internal fun DimOverlay(
 
     Box(Modifier.fillMaxSize()) {
         if (dimState == DimState.RUNNING) {
-            val infiniteTransition = rememberInfiniteTransition(label = "ripple")
-            val animationProgress by infiniteTransition.animateFloat(
-                initialValue = 0f,
-                targetValue = 1f,
-                animationSpec = infiniteRepeatable(
-                    animation = tween(durationMillis = 1500, easing = LinearEasing),
-                    repeatMode = RepeatMode.Restart
-                ),
-                label = "rippleWave"
-            )
+            val animationProgress = if (rippleAnimated) {
+                val infiniteTransition = rememberInfiniteTransition(label = "ripple")
+                val progress by infiniteTransition.animateFloat(
+                    initialValue = 0f,
+                    targetValue = 1f,
+                    animationSpec = infiniteRepeatable(
+                        animation = tween(
+                            durationMillis = rippleSpeedMs.coerceAtLeast(200),
+                            easing = LinearEasing
+                        ),
+                        repeatMode = RepeatMode.Restart
+                    ),
+                    label = "rippleWave"
+                )
+                progress
+            } else {
+                0f
+            }
 
             Canvas(
                 modifier = modifier
@@ -304,7 +321,7 @@ internal fun DimOverlay(
                             (objectHighlightWidth / 2f).let { it * it } +
                             (objectHighlightHeight / 2f).let { it * it }
                         )
-                    } + 4.dp.toPx()
+                    } + spotlightPadding.toPx()
 
                     val rippleExtent = clearRadius * 2.5f
                     val gradientRadius = clearRadius + rippleExtent
@@ -318,7 +335,7 @@ internal fun DimOverlay(
 
                     if (adaptComponentShape) {
                         // Shape-adapted ripple: concentric scaled versions of the component shape
-                        val padding = 4.dp.toPx()
+                        val padding = spotlightPadding.toPx()
                         val baseW = objectHighlightWidth.toFloat() + padding * 2
                         val baseH = objectHighlightHeight.toFloat() + padding * 2
 
@@ -395,7 +412,7 @@ internal fun DimOverlay(
                         drawRect(brush = rippleBrush)
 
                         // Layer 2: punch out the exact shape of the spotlight target
-                        val padding = 4.dp.toPx()
+                        val padding = spotlightPadding.toPx()
                         val shapeSize = Size(
                             objectHighlightWidth.toFloat() + padding * 2,
                             objectHighlightHeight.toFloat() + padding * 2

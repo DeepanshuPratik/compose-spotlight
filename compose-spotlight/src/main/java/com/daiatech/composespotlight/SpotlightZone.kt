@@ -86,6 +86,9 @@ import kotlinx.coroutines.launch
  * @param adaptComponentShape When true, the ripple bands follow the contour of the component shape
  *   instead of using a circular radial gradient.
  * @param shape Shape of the spotlight cutout
+ * @param spotlightPadding Extra padding around the component for the spotlight cutout.
+ *   Larger values create a bigger spotlight; smaller values create a tighter one.
+ *   Default is [SpotlightDefaults.SpotlightPadding].
  * @param caretSize Size of the tooltip caret
  * @param toolTipMaxWidth Maximum width of the tooltip
  * @param controller Controller managing all spotlight zones
@@ -103,6 +106,7 @@ fun SpotlightZone(
     forcedNavigation: Boolean = false,
     adaptComponentShape: Boolean = false,
     shape: Shape = RectangleShape,
+    spotlightPadding: Dp = SpotlightDefaults.SpotlightPadding,
     caretSize: DpSize = DpSize(SpotlightDefaults.caretHeight, SpotlightDefaults.caretWidth),
     toolTipMaxWidth: Dp = SpotlightDefaults.PlainTooltipMaxWidth,
     controller: SpotlightController,
@@ -124,6 +128,7 @@ fun SpotlightZone(
             forcedNavigation = forcedNavigation,
             adaptComponentShape = adaptComponentShape,
             shape = shape,
+            spotlightPadding = spotlightPadding,
             caretSize = caretSize,
             toolTipMaxWidth = toolTipMaxWidth,
             controller = controller,
@@ -145,6 +150,7 @@ internal fun SpotlightZoneCore(
     forcedNavigation: Boolean = false,
     adaptComponentShape: Boolean = false,
     shape: Shape = RectangleShape,
+    spotlightPadding: Dp = SpotlightDefaults.SpotlightPadding,
     caretSize: DpSize = DpSize(SpotlightDefaults.caretHeight, SpotlightDefaults.caretWidth),
     toolTipMaxWidth: Dp = SpotlightDefaults.PlainTooltipMaxWidth,
     controller: SpotlightController,
@@ -194,7 +200,8 @@ internal fun SpotlightZoneCore(
                 audioPlayer = exoPlayer,
                 shape = shape,
                 forcedNavigation = forcedNavigation,
-                adaptComponentShape = adaptComponentShape
+                adaptComponentShape = adaptComponentShape,
+                spotlightPadding = spotlightPadding
             )
             controller.registerZone(key, zone)
         }
@@ -445,6 +452,7 @@ fun TooltipScope.Tooltip(
  * @param tooltipAlignment Horizontal alignment of the tooltip (START, CENTER, END, or AUTO for automatic detection)
  * @param forcedNavigation When true, only this zone is interactive during spotlight
  * @param adaptComponentShape When true, the ripple bands follow the contour of the component shape
+ * @param spotlightPadding Extra padding around the component for the spotlight cutout
  * @param audioResId Optional raw resource ID for audio to play with this message
  * @param content Composable content to be highlighted by the spotlight
  *
@@ -475,6 +483,7 @@ fun SpotlightZone(
     tooltipAlignment: TooltipAlignment = TooltipAlignment.AUTO,
     forcedNavigation: Boolean = false,
     adaptComponentShape: Boolean = false,
+    spotlightPadding: Dp = SpotlightDefaults.SpotlightPadding,
     @RawRes audioResId: Int? = null,
     content: @Composable () -> Unit
 ) {
@@ -502,6 +511,7 @@ fun SpotlightZone(
         forcedNavigation = forcedNavigation,
         adaptComponentShape = adaptComponentShape,
         shape = shape,
+        spotlightPadding = spotlightPadding,
         content = content
     )
 }
@@ -549,6 +559,7 @@ fun SpotlightZone(
     forcedNavigation: Boolean = false,
     adaptComponentShape: Boolean = false,
     shape: Shape = RectangleShape,
+    spotlightPadding: Dp = SpotlightDefaults.SpotlightPadding,
     onFinish: () -> Unit = {},
     content: @Composable () -> Unit
 ) {
@@ -562,6 +573,7 @@ fun SpotlightZone(
         forcedNavigation = forcedNavigation,
         adaptComponentShape = adaptComponentShape,
         shape = shape,
+        spotlightPadding = spotlightPadding,
         onFinish = onFinish,
         content = content
     )
@@ -632,6 +644,11 @@ class SpotlightZoneConfig {
      * Shape of the spotlight cutout.
      */
     var shape: Shape = RectangleShape
+
+    /**
+     * Extra padding around the component for the spotlight cutout.
+     */
+    var spotlightPadding: Dp = SpotlightDefaults.SpotlightPadding
 
     /**
      * Callback invoked when all messages have been displayed.
@@ -714,6 +731,7 @@ fun SpotlightZone(
         forcedNavigation = configuration.forcedNavigation,
         adaptComponentShape = configuration.adaptComponentShape,
         shape = configuration.shape,
+        spotlightPadding = configuration.spotlightPadding,
         onFinish = configuration.onFinish,
         content = content
     )
