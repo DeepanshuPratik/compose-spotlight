@@ -73,7 +73,7 @@ mavenPublishing {
     publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL)
     signAllPublications()
 
-    coordinates("io.github.DeepanshuPratik", "compose-spotlight", "1.0.0")
+    coordinates("io.github.deepanshupratik", "compose-spotlight", "1.0.0")
 
     pom {
         name.set("Compose Spotlight")
@@ -91,7 +91,7 @@ mavenPublishing {
             developer {
                 id.set("DeepanshuPratik")
                 name.set("Deepanshu Pratik")
-                email.set("deepanshupratik@gmail.com")
+                email.set("deepanshu.pratik@gmail.com")
             }
         }
 
