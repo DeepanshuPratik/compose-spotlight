@@ -240,6 +240,7 @@ fun SampleScreen(controller: SpotlightController) {
                         message = "Step 3/5: Tap the + button to continue!",
                         shape = CircleShape,
                         forcedNavigation = true,
+                        adaptComponentShape = true,
                         audioResId = R.raw.prompt_3
                     ) {
                         FloatingActionButton(
@@ -379,6 +380,7 @@ fun SampleScreen(controller: SpotlightController) {
                             message = "Type here! Only this bar is active during forced navigation.",
                             shape = RoundedCornerShape(28.dp),
                             forcedNavigation = true,
+                            adaptComponentShape = true,
                             tooltipPosition = TooltipPosition.BOTTOM,
                             modifier = Modifier
                                 .align(Alignment.TopCenter)

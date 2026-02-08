@@ -28,5 +28,6 @@ data class SpotlightLocation(
     val offset: IntOffset = IntOffset.Zero,
     val size: IntSize = IntSize.Zero,
     val shape: Shape = CircleShape,
-    val forcedNavigation: Boolean = false
+    val forcedNavigation: Boolean = false,
+    val adaptComponentShape: Boolean = false
 )

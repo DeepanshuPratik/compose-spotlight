@@ -52,6 +52,7 @@ internal fun DimmingGroundImpl(
     size: IntSize,
     shape: Shape,
     forcedNavigation: Boolean = false,
+    adaptComponentShape: Boolean = false,
     modifier: Modifier = Modifier,
     rippleIntensity: Float = SpotlightDefaults.RippleIntensity,
     rippleColor: Color = SpotlightDefaults.RippleColor,
@@ -65,6 +66,7 @@ internal fun DimmingGroundImpl(
             position = position,
             componentSize = size,
             dimState = dimState,
+            adaptComponentShape = adaptComponentShape,
             rippleIntensity = rippleIntensity,
             rippleColor = rippleColor
         )
@@ -205,6 +207,39 @@ private fun buildRippleColorStops(
     }.toTypedArray()
 }
 
+/**
+ * Linearly interpolates a color from an array of color stops at the given [position] (0..1).
+ */
+private fun sampleColorStops(
+    stops: Array<Pair<Float, Color>>,
+    position: Float
+): Color {
+    if (stops.isEmpty()) return Color.Transparent
+    if (position <= stops.first().first) return stops.first().second
+    if (position >= stops.last().first) return stops.last().second
+    for (i in 0 until stops.size - 1) {
+        val (pos0, col0) = stops[i]
+        val (pos1, col1) = stops[i + 1]
+        if (position in pos0..pos1) {
+            val t = if (pos1 == pos0) 0f else (position - pos0) / (pos1 - pos0)
+            return lerp(col0, col1, t)
+        }
+    }
+    return stops.last().second
+}
+
+/**
+ * Linearly interpolates between two [Color] values.
+ */
+private fun lerp(start: Color, stop: Color, fraction: Float): Color {
+    return Color(
+        red = start.red + (stop.red - start.red) * fraction,
+        green = start.green + (stop.green - start.green) * fraction,
+        blue = start.blue + (stop.blue - start.blue) * fraction,
+        alpha = start.alpha + (stop.alpha - start.alpha) * fraction
+    )
+}
+
 @Composable
 internal fun DimOverlay(
     modifier: Modifier,
@@ -212,6 +247,7 @@ internal fun DimOverlay(
     position: IntOffset,
     componentSize: IntSize,
     dimState: DimState,
+    adaptComponentShape: Boolean = false,
     rippleIntensity: Float = SpotlightDefaults.RippleIntensity,
     rippleColor: Color = SpotlightDefaults.RippleColor,
     textBoxCornerRadius: Dp = 8.dp
@@ -250,39 +286,108 @@ internal fun DimOverlay(
 
                     val colorStops = buildRippleColorStops(r, s, dimAlpha, rippleIntensity, rippleColor)
 
-                    val rippleBrush = Brush.radialGradient(
-                        colorStops = colorStops,
-                        center = center,
-                        radius = gradientRadius,
-                        tileMode = TileMode.Clamp
-                    )
+                    if (adaptComponentShape) {
+                        // Shape-adapted ripple: concentric scaled versions of the component shape
+                        val padding = 4.dp.toPx()
+                        val baseW = objectHighlightWidth.toFloat() + padding * 2
+                        val baseH = objectHighlightHeight.toFloat() + padding * 2
 
-                    // Layer 1: draw the ripple gradient over the full screen
-                    drawRect(brush = rippleBrush)
+                        // Layer 1: fill with outermost dim color as base
+                        drawRect(color = rippleColor.copy(alpha = dimAlpha))
 
-                    // Layer 2: punch out the exact shape of the spotlight target
-                    val padding = 4.dp.toPx()
-                    val shapeSize = Size(
-                        objectHighlightWidth.toFloat() + padding * 2,
-                        objectHighlightHeight.toFloat() + padding * 2
-                    )
-                    val outline = highlightShape.createOutline(
-                        size = shapeSize,
-                        layoutDirection = layoutDirection,
-                        density = this
-                    )
-                    val spotlightPath = Path().apply {
-                        when (outline) {
-                            is Outline.Rectangle -> addRect(outline.rect)
-                            is Outline.Rounded -> addRoundRect(outline.roundRect)
-                            is Outline.Generic -> addPath(outline.path)
+                        // Layer 2: draw ~40 concentric scaled shapes from outermost to innermost
+                        val layerCount = 40
+                        val maxScale = gradientRadius / (clearRadius.coerceAtLeast(1f))
+
+                        for (i in 0 until layerCount) {
+                            // t goes from 1.0 (outermost) to 0.0 (innermost, at cutout edge)
+                            val t = 1f - i.toFloat() / (layerCount - 1).toFloat()
+                            val scale = 1f + (maxScale - 1f) * t
+
+                            val scaledW = baseW * scale
+                            val scaledH = baseH * scale
+                            val scaledSize = Size(scaledW, scaledH)
+
+                            val layerOutline = highlightShape.createOutline(
+                                size = scaledSize,
+                                layoutDirection = layoutDirection,
+                                density = this
+                            )
+                            val layerPath = Path().apply {
+                                when (layerOutline) {
+                                    is Outline.Rectangle -> addRect(layerOutline.rect)
+                                    is Outline.Rounded -> addRoundRect(layerOutline.roundRect)
+                                    is Outline.Generic -> addPath(layerOutline.path)
+                                }
+                            }
+
+                            // Map scale position to gradient position (r..1)
+                            val gradientPos = r + s * t
+                            val layerColor = sampleColorStops(colorStops, gradientPos)
+
+                            val offsetX = cx - scaledW / 2f
+                            val offsetY = cy - scaledH / 2f
+                            translate(left = offsetX, top = offsetY) {
+                                drawPath(layerPath, layerColor, blendMode = BlendMode.Src)
+                            }
                         }
-                    }
-                    translate(
-                        left = highlightXCoordinate - padding,
-                        top = highlightYCoordinate - padding
-                    ) {
-                        drawPath(spotlightPath, Color.Black, blendMode = BlendMode.Clear)
+
+                        // Layer 3: clear the cutout shape
+                        val cutoutSize = Size(baseW, baseH)
+                        val cutoutOutline = highlightShape.createOutline(
+                            size = cutoutSize,
+                            layoutDirection = layoutDirection,
+                            density = this
+                        )
+                        val cutoutPath = Path().apply {
+                            when (cutoutOutline) {
+                                is Outline.Rectangle -> addRect(cutoutOutline.rect)
+                                is Outline.Rounded -> addRoundRect(cutoutOutline.roundRect)
+                                is Outline.Generic -> addPath(cutoutOutline.path)
+                            }
+                        }
+                        translate(
+                            left = highlightXCoordinate - padding,
+                            top = highlightYCoordinate - padding
+                        ) {
+                            drawPath(cutoutPath, Color.Black, blendMode = BlendMode.Clear)
+                        }
+                    } else {
+                        // Default: radial gradient ripple
+                        val rippleBrush = Brush.radialGradient(
+                            colorStops = colorStops,
+                            center = center,
+                            radius = gradientRadius,
+                            tileMode = TileMode.Clamp
+                        )
+
+                        // Layer 1: draw the ripple gradient over the full screen
+                        drawRect(brush = rippleBrush)
+
+                        // Layer 2: punch out the exact shape of the spotlight target
+                        val padding = 4.dp.toPx()
+                        val shapeSize = Size(
+                            objectHighlightWidth.toFloat() + padding * 2,
+                            objectHighlightHeight.toFloat() + padding * 2
+                        )
+                        val outline = highlightShape.createOutline(
+                            size = shapeSize,
+                            layoutDirection = layoutDirection,
+                            density = this
+                        )
+                        val spotlightPath = Path().apply {
+                            when (outline) {
+                                is Outline.Rectangle -> addRect(outline.rect)
+                                is Outline.Rounded -> addRoundRect(outline.roundRect)
+                                is Outline.Generic -> addPath(outline.path)
+                            }
+                        }
+                        translate(
+                            left = highlightXCoordinate - padding,
+                            top = highlightYCoordinate - padding
+                        ) {
+                            drawPath(spotlightPath, Color.Black, blendMode = BlendMode.Clear)
+                        }
                     }
                 }
             )

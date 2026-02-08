@@ -54,6 +54,7 @@ fun DimmingGround(
             size = it.size,
             shape = it.shape,
             forcedNavigation = it.forcedNavigation,
+            adaptComponentShape = it.adaptComponentShape,
             rippleIntensity = rippleIntensity.coerceIn(0f, 1f),
             rippleColor = rippleColor,
             modifier = modifier,
