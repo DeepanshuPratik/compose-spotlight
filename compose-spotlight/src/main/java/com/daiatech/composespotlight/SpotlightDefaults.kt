@@ -41,7 +41,7 @@ object SpotlightDefaults {
      * Default ripple intensity for the spotlight dimming effect.
      * Range: 0f (no ripple, smooth gradient) to 1f (maximum ripple contrast).
      */
-    const val RippleIntensity = 0.6f
+    const val RippleIntensity = 1f
 
     /**
      * Default color used for the spotlight dimming overlay and ripple rings.
