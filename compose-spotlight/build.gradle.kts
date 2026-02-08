@@ -1,9 +1,10 @@
+import com.vanniktech.maven.publish.SonatypeHost
+
 plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
-    id("maven-publish")
-    id("signing")
+    id("com.vanniktech.maven.publish")
 }
 
 android {
@@ -75,70 +76,36 @@ dependencies {
     testImplementation("junit:junit:4.13.2")
 }
 
-// Library version
-val libraryVersion = "1.0.0"
-val libraryGroup = "io.github.DeepanshuPratik"
-val libraryArtifactId = "compose-spotlight"
+mavenPublishing {
+    publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL)
+    signAllPublications()
 
-afterEvaluate {
-    publishing {
-        publications {
-            create<MavenPublication>("release") {
-                from(components["release"])
+    coordinates("io.github.DeepanshuPratik", "compose-spotlight", "1.0.0")
 
-                groupId = libraryGroup
-                artifactId = libraryArtifactId
-                version = libraryVersion
+    pom {
+        name.set("Compose Spotlight")
+        description.set("A feature spotlight library for Jetpack Compose that allows you to highlight UI elements with tooltips and audio narration")
+        url.set("https://github.com/DeepanshuPratik/compose-spotlight")
 
-                pom {
-                    name.set("Compose Spotlight")
-                    description.set("A feature spotlight library for Jetpack Compose that allows you to highlight UI elements with tooltips and audio narration")
-                    url.set("https://github.com/DeepanshuPratik/compose-spotlight")
-
-                    licenses {
-                        license {
-                            name.set("The Apache License, Version 2.0")
-                            url.set("http://www.apache.org/licenses/LICENSE-2.0.txt")
-                        }
-                    }
-
-                    developers {
-                        developer {
-                            id.set("DeepanshuPratik")
-                            name.set("Deepanshu Pratik")
-                            email.set("deepanshupratik@gmail.com")
-                        }
-                    }
-
-                    scm {
-                        connection.set("scm:git:git://github.com/DeepanshuPratik/compose-spotlight.git")
-                        developerConnection.set("scm:git:ssh://github.com/DeepanshuPratik/compose-spotlight.git")
-                        url.set("https://github.com/DeepanshuPratik/compose-spotlight")
-                    }
-                }
+        licenses {
+            license {
+                name.set("The Apache License, Version 2.0")
+                url.set("http://www.apache.org/licenses/LICENSE-2.0.txt")
             }
         }
 
-        repositories {
-            maven {
-                name = "sonatype"
-                url = if (libraryVersion.endsWith("SNAPSHOT")) {
-                    uri("https://s01.oss.sonatype.org/content/repositories/snapshots/")
-                } else {
-                    uri("https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/")
-                }
-                credentials {
-                    username = findProperty("ossrhUsername") as String? ?: System.getenv("OSSRH_USERNAME")
-                    password = findProperty("ossrhPassword") as String? ?: System.getenv("OSSRH_PASSWORD")
-                }
+        developers {
+            developer {
+                id.set("DeepanshuPratik")
+                name.set("Deepanshu Pratik")
+                email.set("deepanshupratik@gmail.com")
             }
         }
-    }
 
-    signing {
-        // Sign only if credentials are available
-        if (hasProperty("signing.keyId")) {
-            sign(publishing.publications["release"])
+        scm {
+            connection.set("scm:git:git://github.com/DeepanshuPratik/compose-spotlight.git")
+            developerConnection.set("scm:git:ssh://github.com/DeepanshuPratik/compose-spotlight.git")
+            url.set("https://github.com/DeepanshuPratik/compose-spotlight")
         }
     }
 }
