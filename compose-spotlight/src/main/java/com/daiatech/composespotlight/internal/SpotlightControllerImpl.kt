@@ -201,7 +201,8 @@ internal class SpotlightControllerImpl(private val spotlightPreferences: Spotlig
                         ),
                         shape = zone.shape,
                         forcedNavigation = zone.forcedNavigation,
-                        adaptComponentShape = zone.adaptComponentShape
+                        adaptComponentShape = zone.adaptComponentShape,
+                        spotlightPadding = zone.spotlightPadding
                     )
                 } else {
                     SpotlightLocation(
@@ -209,7 +210,8 @@ internal class SpotlightControllerImpl(private val spotlightPreferences: Spotlig
                         size = IntSize.Companion.Zero,
                         shape = zone.shape,
                         forcedNavigation = zone.forcedNavigation,
-                        adaptComponentShape = zone.adaptComponentShape
+                        adaptComponentShape = zone.adaptComponentShape,
+                        spotlightPadding = zone.spotlightPadding
                     )
                 }
             }

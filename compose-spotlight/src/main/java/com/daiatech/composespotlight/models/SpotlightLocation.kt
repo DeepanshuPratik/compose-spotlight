@@ -18,8 +18,10 @@ package com.daiatech.composespotlight.models
 
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
+import com.daiatech.composespotlight.SpotlightDefaults
 
 /**
  * Data class to represent the state of the current zone being spotlighted.
@@ -29,5 +31,6 @@ data class SpotlightLocation(
     val size: IntSize = IntSize.Zero,
     val shape: Shape = CircleShape,
     val forcedNavigation: Boolean = false,
-    val adaptComponentShape: Boolean = false
+    val adaptComponentShape: Boolean = false,
+    val spotlightPadding: Dp = SpotlightDefaults.SpotlightPadding
 )

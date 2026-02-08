@@ -47,4 +47,23 @@ object SpotlightDefaults {
      * Default color used for the spotlight dimming overlay and ripple rings.
      */
     val RippleColor: Color = Color.Black
+
+    /**
+     * Whether the ripple rings animate continuously by default.
+     * When `true`, rings expand outward like water ripples until the user
+     * interacts with the spotlighted component.
+     */
+    const val RippleAnimated: Boolean = true
+
+    /**
+     * Default duration in milliseconds for one full ripple expansion cycle.
+     * Lower values → faster ripple, higher values → slower ripple.
+     */
+    const val RippleSpeedMs: Int = 1500
+
+    /**
+     * Default padding around the spotlighted component.
+     * Controls how much extra space the spotlight cutout extends beyond the component bounds.
+     */
+    val SpotlightPadding = 4.dp
 }

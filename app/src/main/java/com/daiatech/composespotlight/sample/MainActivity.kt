@@ -41,6 +41,7 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -49,6 +50,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -117,6 +119,8 @@ fun SampleScreen(controller: SpotlightController) {
     val zoneLocation by controller.zoneLocationState.collectAsState()
     var rippleIntensity by rememberSaveable { mutableFloatStateOf(SpotlightDefaults.RippleIntensity) }
     var rippleColor by remember { mutableStateOf(SpotlightDefaults.RippleColor) }
+    var rippleAnimated by rememberSaveable { mutableStateOf(SpotlightDefaults.RippleAnimated) }
+    var rippleSpeedMs by rememberSaveable { mutableIntStateOf(SpotlightDefaults.RippleSpeedMs) }
     var selectedColorIndex by rememberSaveable { mutableStateOf(0) }
     var showSearchBar by rememberSaveable { mutableStateOf(false) }
     var searchQuery by rememberSaveable { mutableStateOf("") }
@@ -126,7 +130,9 @@ fun SampleScreen(controller: SpotlightController) {
             controller = controller,
             modifier = Modifier.fillMaxSize(),
             rippleIntensity = rippleIntensity,
-            rippleColor = rippleColor
+            rippleColor = rippleColor,
+            rippleAnimated = rippleAnimated,
+            rippleSpeedMs = rippleSpeedMs
         ) {
             Scaffold(
                 topBar = {
@@ -142,6 +148,7 @@ fun SampleScreen(controller: SpotlightController) {
                                 controller = controller,
                                 message = "Step 1/5: Tap here to search across all your content",
                                 shape = CircleShape,
+                                spotlightPadding = 2.dp,
                                 forcedNavigation = true,
                                 audioResId = R.raw.prompt_1
                             ) {
@@ -178,7 +185,8 @@ fun SampleScreen(controller: SpotlightController) {
                             key = "home",
                             controller = controller,
                             message = "Home",
-                            shape = RoundedCornerShape(12.dp),
+                            shape = CircleShape,
+                            spotlightPadding = 2.dp,
                             tooltipPosition = TooltipPosition.TOP,
                             tooltipAlignment = TooltipAlignment.START,
                             modifier = Modifier.weight(1f)
@@ -199,6 +207,7 @@ fun SampleScreen(controller: SpotlightController) {
                             message = "Step 4/5: View and edit your profile from here",
                             shape = CircleShape,
                             tooltipPosition = TooltipPosition.TOP,
+                            spotlightPadding = 2.dp,
                             audioResId = R.raw.prompt_4,
                             modifier = Modifier.weight(1f)
                         ) {
@@ -216,7 +225,8 @@ fun SampleScreen(controller: SpotlightController) {
                             key = "settings",
                             controller = controller,
                             message = "Step 5/5: Customize your app settings",
-                            shape = RectangleShape,
+                            shape = CircleShape,
+                            spotlightPadding = 2.dp,
                             tooltipPosition = TooltipPosition.TOP,
                             tooltipAlignment = TooltipAlignment.END,
                             audioResId = R.raw.prompt_5,
@@ -239,6 +249,7 @@ fun SampleScreen(controller: SpotlightController) {
                         controller = controller,
                         message = "Step 3/5: Tap the + button to continue!",
                         shape = CircleShape,
+                        spotlightPadding = 12.dp,
                         forcedNavigation = true,
                         adaptComponentShape = true,
                         audioResId = R.raw.prompt_3
@@ -311,6 +322,56 @@ fun SampleScreen(controller: SpotlightController) {
                         ) {
                             Text("Smooth", style = MaterialTheme.typography.labelSmall)
                             Text("Max ripple", style = MaterialTheme.typography.labelSmall)
+                        }
+
+                        Spacer(modifier = Modifier.height(20.dp))
+
+                        // Ripple speed control
+                        Text(
+                            text = "Ripple Speed: ${rippleSpeedMs}ms",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+
+                        Slider(
+                            value = rippleSpeedMs.toFloat(),
+                            onValueChange = { rippleSpeedMs = it.toInt() },
+                            valueRange = 500f..4000f,
+                            steps = 6,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp)
+                        )
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text("Fast", style = MaterialTheme.typography.labelSmall)
+                            Text("Slow", style = MaterialTheme.typography.labelSmall)
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        // Ripple animated toggle
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Animated Ripple",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Switch(
+                                checked = rippleAnimated,
+                                onCheckedChange = { rippleAnimated = it }
+                            )
                         }
 
                         Spacer(modifier = Modifier.height(20.dp))

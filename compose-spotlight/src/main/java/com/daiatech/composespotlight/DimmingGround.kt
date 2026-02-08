@@ -34,6 +34,13 @@ import com.daiatech.composespotlight.internal.DimmingGroundImpl
  *   Default is [SpotlightDefaults.RippleIntensity].
  * @param rippleColor The color used for the dimming overlay and ripple rings.
  *   Default is [SpotlightDefaults.RippleColor] (black).
+ * @param rippleAnimated Whether the ripple rings animate continuously.
+ *   When `true`, rings expand outward like water ripples.
+ *   When `false`, the ripple is rendered as a static gradient.
+ *   Default is [SpotlightDefaults.RippleAnimated].
+ * @param rippleSpeedMs Duration in milliseconds for one full ripple expansion cycle.
+ *   Lower values produce faster ripples, higher values produce slower ripples.
+ *   Default is [SpotlightDefaults.RippleSpeedMs].
  * @param content The content of the spotlight ground.
  */
 @Composable
@@ -42,6 +49,8 @@ fun DimmingGround(
     modifier: Modifier = Modifier,
     rippleIntensity: Float = SpotlightDefaults.RippleIntensity,
     rippleColor: Color = SpotlightDefaults.RippleColor,
+    rippleAnimated: Boolean = SpotlightDefaults.RippleAnimated,
+    rippleSpeedMs: Int = SpotlightDefaults.RippleSpeedMs,
     content: @Composable () -> Unit
 ) {
     val currentSpotlightZone by controller.zoneLocationState.collectAsStateWithLifecycle()
@@ -55,8 +64,11 @@ fun DimmingGround(
             shape = it.shape,
             forcedNavigation = it.forcedNavigation,
             adaptComponentShape = it.adaptComponentShape,
+            spotlightPadding = it.spotlightPadding,
             rippleIntensity = rippleIntensity.coerceIn(0f, 1f),
             rippleColor = rippleColor,
+            rippleAnimated = rippleAnimated,
+            rippleSpeedMs = rippleSpeedMs,
             modifier = modifier,
             content = content
         )
