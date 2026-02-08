@@ -20,7 +20,9 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.TooltipState
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.unit.Dp
 import androidx.media3.exoplayer.ExoPlayer
+import com.daiatech.composespotlight.SpotlightDefaults
 
 /**
  * Data class to represent a spotlight zone.
@@ -32,5 +34,6 @@ data class SpotlightZoneData(
     val audioPlayer: ExoPlayer?,
     val shape: Shape,
     val forcedNavigation: Boolean = false,
-    val adaptComponentShape: Boolean = false
+    val adaptComponentShape: Boolean = false,
+    val spotlightPadding: Dp = SpotlightDefaults.SpotlightPadding
 )
