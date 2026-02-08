@@ -16,11 +16,18 @@
 
 package com.daiatech.composespotlight.internal
 
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -43,6 +50,8 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.daiatech.composespotlight.SpotlightDefaults
 import com.daiatech.composespotlight.models.DimState
+import kotlin.math.PI
+import kotlin.math.sin
 import kotlin.math.sqrt
 
 @Composable
@@ -166,7 +175,8 @@ private fun buildRippleColorStops(
     s: Float,
     dimAlpha: Float,
     intensity: Float,
-    color: Color
+    color: Color,
+    animationProgress: Float = 0f
 ): Array<Pair<Float, Color>> {
     data class Ring(
         val peakPos: Float,
@@ -176,10 +186,10 @@ private fun buildRippleColorStops(
     )
 
     val rings = listOf(
-        Ring(peakPos = 0.12f, troughPos = 0.22f, peakOffset = 0.02f, troughOffset = 0.06f),
-        Ring(peakPos = 0.32f, troughPos = 0.44f, peakOffset = 0.04f, troughOffset = 0.09f),
-        Ring(peakPos = 0.55f, troughPos = 0.67f, peakOffset = 0.05f, troughOffset = 0.10f),
-        Ring(peakPos = 0.78f, troughPos = 0.88f, peakOffset = 0.04f, troughOffset = 0.07f),
+        Ring(peakPos = 0.12f, troughPos = 0.22f, peakOffset = 0.06f, troughOffset = 0.18f),
+        Ring(peakPos = 0.32f, troughPos = 0.44f, peakOffset = 0.12f, troughOffset = 0.25f),
+        Ring(peakPos = 0.55f, troughPos = 0.67f, peakOffset = 0.15f, troughOffset = 0.28f),
+        Ring(peakPos = 0.78f, troughPos = 0.88f, peakOffset = 0.12f, troughOffset = 0.20f),
     )
 
     val activeRings = intensity * rings.size
@@ -188,8 +198,17 @@ private fun buildRippleColorStops(
         add(0.0f to Color.Transparent)
         add(r to Color.Transparent)
 
+        val phase = animationProgress * 2f * PI.toFloat()
+
         for ((index, ring) in rings.withIndex()) {
-            val visibility = (activeRings - index).coerceIn(0f, 1f)
+            val baseVisibility = (activeRings - index).coerceIn(0f, 1f)
+
+            // Traveling wave: inner rings peak first, creating outward ripple illusion
+            // Wave amplitude scales with intensity: higher = more contrast between peaks/troughs
+            val spatialPhase = index.toFloat() / rings.size * 2f * PI.toFloat()
+            val wave = (sin(phase - spatialPhase) + 1f) / 2f
+            val waveFloor = 1f - intensity
+            val visibility = baseVisibility * (waveFloor + intensity * wave)
 
             val baselinePeak = dimAlpha * ring.peakPos
             val baselineTrough = dimAlpha * ring.troughPos
@@ -259,6 +278,17 @@ internal fun DimOverlay(
 
     Box(Modifier.fillMaxSize()) {
         if (dimState == DimState.RUNNING) {
+            val infiniteTransition = rememberInfiniteTransition(label = "ripple")
+            val animationProgress by infiniteTransition.animateFloat(
+                initialValue = 0f,
+                targetValue = 1f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(durationMillis = 1500, easing = LinearEasing),
+                    repeatMode = RepeatMode.Restart
+                ),
+                label = "rippleWave"
+            )
+
             Canvas(
                 modifier = modifier
                     .fillMaxSize()
@@ -284,7 +314,7 @@ internal fun DimOverlay(
                     val r = clearRadius / gradientRadius
                     val s = 1f - r
 
-                    val colorStops = buildRippleColorStops(r, s, dimAlpha, rippleIntensity, rippleColor)
+                    val colorStops = buildRippleColorStops(r, s, dimAlpha, rippleIntensity, rippleColor, animationProgress)
 
                     if (adaptComponentShape) {
                         // Shape-adapted ripple: concentric scaled versions of the component shape
