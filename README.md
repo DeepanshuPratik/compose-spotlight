@@ -278,7 +278,7 @@ limitations under the License.
 
 ## Acknowledgments
 
-Originally developed as part of the Karya Android Client project by DAIA Tech.
+Originally developed by me as part of the Karya Android Client project by DAIA Tech. Extracting it for open sourcing it and adding more feature support 
 
 ## Roadmap
 
