@@ -2,7 +2,7 @@
 
 A Jetpack Compose library for building guided onboarding experiences. Highlight UI elements with a dimmed overlay, shape-aware cutouts, ripple effects, tooltips, and optional audio narration.
 
-[![Maven Central](https://img.shields.io/maven-central/v/io.github.DeepanshuPratik/compose-spotlight)](https://central.sonatype.com/artifact/io.github.DeepanshuPratik/compose-spotlight)
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.deepanshupratik/compose-spotlight)](https://central.sonatype.com/artifact/io.github.deepanshupratik/compose-spotlight)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![API](https://img.shields.io/badge/API-24%2B-brightgreen.svg?style=flat)](https://android-arsenal.com/api?level=24)
 
