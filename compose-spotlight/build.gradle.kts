@@ -65,6 +65,9 @@ dependencies {
     // ExoPlayer
     implementation("androidx.media3:media3-exoplayer:1.9.0")
 
+    // Lottie (hand gesture animation)
+    implementation("com.airbnb.android:lottie-compose:6.6.0")
+
     // Testing
     testImplementation("junit:junit:4.13.2")
 }

@@ -19,7 +19,6 @@ package com.daiatech.composespotlight
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.daiatech.composespotlight.internal.DimmingGroundImpl
 
@@ -28,29 +27,17 @@ import com.daiatech.composespotlight.internal.DimmingGroundImpl
  *
  * @param controller The spotlight controller to use.
  * @param modifier The modifier to be applied to the spotlight ground.
- * @param rippleIntensity Controls the visibility of the ripple rings in the dimming overlay.
- *   `0f` produces a smooth gradient with no visible rings.
- *   `1f` produces maximum contrast between ring peaks and troughs.
- *   Default is [SpotlightDefaults.RippleIntensity].
- * @param rippleColor The color used for the dimming overlay and ripple rings.
- *   Default is [SpotlightDefaults.RippleColor] (black).
- * @param rippleAnimated Whether the ripple rings animate continuously.
- *   When `true`, rings expand outward like water ripples.
- *   When `false`, the ripple is rendered as a static gradient.
- *   Default is [SpotlightDefaults.RippleAnimated].
- * @param rippleSpeedMs Duration in milliseconds for one full ripple expansion cycle.
- *   Lower values produce faster ripples, higher values produce slower ripples.
- *   Default is [SpotlightDefaults.RippleSpeedMs].
+ * @param effect The visual effect rendered in the dimming overlay around the spotlighted
+ *   component. Use [SpotlightEffect.Ripple] for expanding water-ripple rings or
+ *   [SpotlightEffect.HandGesture] for an animated pointing-hand indicator.
+ *   Default is [SpotlightDefaults.Effect].
  * @param content The content of the spotlight ground.
  */
 @Composable
 fun DimmingGround(
     controller: SpotlightController,
     modifier: Modifier = Modifier,
-    rippleIntensity: Float = SpotlightDefaults.RippleIntensity,
-    rippleColor: Color = SpotlightDefaults.RippleColor,
-    rippleAnimated: Boolean = SpotlightDefaults.RippleAnimated,
-    rippleSpeedMs: Int = SpotlightDefaults.RippleSpeedMs,
+    effect: SpotlightEffect = SpotlightDefaults.Effect,
     content: @Composable () -> Unit
 ) {
     val currentSpotlightZone by controller.zoneLocationState.collectAsStateWithLifecycle()
@@ -65,10 +52,11 @@ fun DimmingGround(
             forcedNavigation = it.forcedNavigation,
             adaptComponentShape = it.adaptComponentShape,
             spotlightPadding = it.spotlightPadding,
-            rippleIntensity = rippleIntensity.coerceIn(0f, 1f),
-            rippleColor = rippleColor,
-            rippleAnimated = rippleAnimated,
-            rippleSpeedMs = rippleSpeedMs,
+            effect = if (effect is SpotlightEffect.Ripple) {
+                effect.copy(intensity = effect.intensity.coerceIn(0f, 1f))
+            } else {
+                effect
+            },
             modifier = modifier,
             content = content
         )

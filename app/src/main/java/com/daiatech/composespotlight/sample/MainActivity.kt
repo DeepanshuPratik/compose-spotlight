@@ -70,6 +70,7 @@ import com.daiatech.composespotlight.DimmingGround
 import com.daiatech.composespotlight.FakeSpotlightController
 import com.daiatech.composespotlight.SpotlightController
 import com.daiatech.composespotlight.SpotlightDefaults
+import com.daiatech.composespotlight.SpotlightEffect
 import com.daiatech.composespotlight.SpotlightManagerImpl
 import com.daiatech.composespotlight.SpotlightZone
 import com.daiatech.composespotlight.TooltipAlignment
@@ -110,6 +111,14 @@ private val colorOptions = listOf(
     "Red" to Color(0xFFB71C1C),
 )
 
+private val handOverlayColorOptions = listOf(
+    "Black" to Color.Black,
+    "Navy" to Color(0xFF1A237E),
+    "Purple" to Color(0xFF4A148C),
+    "Teal" to Color(0xFF004D40),
+    "Charcoal" to Color(0xFF37474F),
+)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SampleScreen(controller: SpotlightController) {
@@ -117,22 +126,41 @@ fun SampleScreen(controller: SpotlightController) {
     val context = LocalContext.current
     val dimState by controller.dimState.collectAsState()
     val zoneLocation by controller.zoneLocationState.collectAsState()
+
+    // Effect type toggle
+    var useHandGesture by rememberSaveable { mutableStateOf(false) }
+
+    // Ripple configuration
     var rippleIntensity by rememberSaveable { mutableFloatStateOf(SpotlightDefaults.RippleIntensity) }
     var rippleColor by remember { mutableStateOf(SpotlightDefaults.RippleColor) }
     var rippleAnimated by rememberSaveable { mutableStateOf(SpotlightDefaults.RippleAnimated) }
     var rippleSpeedMs by rememberSaveable { mutableIntStateOf(SpotlightDefaults.RippleSpeedMs) }
-    var selectedColorIndex by rememberSaveable { mutableStateOf(0) }
+    var selectedRippleColorIndex by rememberSaveable { mutableStateOf(0) }
+
+    // HandGesture configuration
+    var handGestureColor by remember { mutableStateOf(SpotlightDefaults.HandGestureColor) }
+    var handGestureSpeedMs by rememberSaveable { mutableIntStateOf(SpotlightDefaults.HandGestureSpeedMs) }
+    var selectedHandColorIndex by rememberSaveable { mutableStateOf(0) }
+
     var showSearchBar by rememberSaveable { mutableStateOf(false) }
     var searchQuery by rememberSaveable { mutableStateOf("") }
+
+    val effect: SpotlightEffect = if (useHandGesture) {
+        SpotlightEffect.HandGesture(color = handGestureColor, speedMs = handGestureSpeedMs)
+    } else {
+        SpotlightEffect.Ripple(
+            intensity = rippleIntensity,
+            color = rippleColor,
+            animated = rippleAnimated,
+            speedMs = rippleSpeedMs
+        )
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         DimmingGround(
             controller = controller,
             modifier = Modifier.fillMaxSize(),
-            rippleIntensity = rippleIntensity,
-            rippleColor = rippleColor,
-            rippleAnimated = rippleAnimated,
-            rippleSpeedMs = rippleSpeedMs
+            effect = effect
         ) {
             Scaffold(
                 topBar = {
@@ -297,65 +325,7 @@ fun SampleScreen(controller: SpotlightController) {
 
                         Spacer(modifier = Modifier.height(28.dp))
 
-                        // Ripple intensity control
-                        Text(
-                            text = "Ripple Intensity: ${"%.0f".format(rippleIntensity * 100)}%",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold
-                        )
-
-                        Slider(
-                            value = rippleIntensity,
-                            onValueChange = { rippleIntensity = it },
-                            valueRange = 0f..1f,
-                            steps = 9,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp)
-                        )
-
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text("Smooth", style = MaterialTheme.typography.labelSmall)
-                            Text("Max ripple", style = MaterialTheme.typography.labelSmall)
-                        }
-
-                        Spacer(modifier = Modifier.height(20.dp))
-
-                        // Ripple speed control
-                        Text(
-                            text = "Ripple Speed: ${rippleSpeedMs}ms",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold
-                        )
-
-                        Slider(
-                            value = rippleSpeedMs.toFloat(),
-                            onValueChange = { rippleSpeedMs = it.toInt() },
-                            valueRange = 500f..4000f,
-                            steps = 6,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp)
-                        )
-
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text("Fast", style = MaterialTheme.typography.labelSmall)
-                            Text("Slow", style = MaterialTheme.typography.labelSmall)
-                        }
-
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        // Ripple animated toggle
+                        // ── Effect type toggle ────────────────────────────────────
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -364,58 +334,209 @@ fun SampleScreen(controller: SpotlightController) {
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "Animated Ripple",
+                                text = "Hand Gesture Effect",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.SemiBold
                             )
                             Switch(
-                                checked = rippleAnimated,
-                                onCheckedChange = { rippleAnimated = it }
+                                checked = useHandGesture,
+                                onCheckedChange = { useHandGesture = it }
                             )
                         }
 
                         Spacer(modifier = Modifier.height(20.dp))
 
-                        // Ripple color picker
-                        Text(
-                            text = "Ripple Color: ${colorOptions[selectedColorIndex].first}",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold
-                        )
+                        if (useHandGesture) {
+                            // ── Hand Gesture controls ─────────────────────────────
 
-                        Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "Hand Speed: ${handGestureSpeedMs}ms",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold
+                            )
 
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            colorOptions.forEachIndexed { index, (_, color) ->
-                                val isSelected = index == selectedColorIndex
-                                Box(
-                                    modifier = Modifier
-                                        .size(40.dp)
-                                        .clip(CircleShape)
-                                        .background(color, CircleShape)
-                                        .then(
-                                            if (isSelected) {
-                                                Modifier.border(
-                                                    width = 3.dp,
-                                                    color = MaterialTheme.colorScheme.primary,
-                                                    shape = CircleShape
-                                                )
-                                            } else {
-                                                Modifier.border(
-                                                    width = 1.dp,
-                                                    color = MaterialTheme.colorScheme.outline,
-                                                    shape = CircleShape
-                                                )
+                            Slider(
+                                value = handGestureSpeedMs.toFloat(),
+                                onValueChange = { handGestureSpeedMs = it.toInt() },
+                                valueRange = 400f..3000f,
+                                steps = 5,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp)
+                            )
+
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text("Fast", style = MaterialTheme.typography.labelSmall)
+                                Text("Slow", style = MaterialTheme.typography.labelSmall)
+                            }
+
+                            Spacer(modifier = Modifier.height(16.dp))
+
+                            Text(
+                                text = "Overlay Color: ${handOverlayColorOptions[selectedHandColorIndex].first}",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold
+                            )
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                handOverlayColorOptions.forEachIndexed { index, (_, color) ->
+                                    val isSelected = index == selectedHandColorIndex
+                                    Box(
+                                        modifier = Modifier
+                                            .size(40.dp)
+                                            .clip(CircleShape)
+                                            .background(color, CircleShape)
+                                            .then(
+                                                if (isSelected) {
+                                                    Modifier.border(
+                                                        width = 3.dp,
+                                                        color = MaterialTheme.colorScheme.primary,
+                                                        shape = CircleShape
+                                                    )
+                                                } else {
+                                                    Modifier.border(
+                                                        width = 1.dp,
+                                                        color = MaterialTheme.colorScheme.outline,
+                                                        shape = CircleShape
+                                                    )
+                                                }
+                                            )
+                                            .clickable {
+                                                selectedHandColorIndex = index
+                                                handGestureColor = color
                                             }
-                                        )
-                                        .clickable {
-                                            selectedColorIndex = index
-                                            rippleColor = color
-                                        }
+                                    )
+                                }
+                            }
+                        } else {
+                            // ── Ripple controls ───────────────────────────────────
+
+                            Text(
+                                text = "Ripple Intensity: ${"%.0f".format(rippleIntensity * 100)}%",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold
+                            )
+
+                            Slider(
+                                value = rippleIntensity,
+                                onValueChange = { rippleIntensity = it },
+                                valueRange = 0f..1f,
+                                steps = 9,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp)
+                            )
+
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text("Smooth", style = MaterialTheme.typography.labelSmall)
+                                Text("Max ripple", style = MaterialTheme.typography.labelSmall)
+                            }
+
+                            Spacer(modifier = Modifier.height(20.dp))
+
+                            Text(
+                                text = "Ripple Speed: ${rippleSpeedMs}ms",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold
+                            )
+
+                            Slider(
+                                value = rippleSpeedMs.toFloat(),
+                                onValueChange = { rippleSpeedMs = it.toInt() },
+                                valueRange = 500f..4000f,
+                                steps = 6,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp)
+                            )
+
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text("Fast", style = MaterialTheme.typography.labelSmall)
+                                Text("Slow", style = MaterialTheme.typography.labelSmall)
+                            }
+
+                            Spacer(modifier = Modifier.height(16.dp))
+
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "Animated Ripple",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.SemiBold
                                 )
+                                Switch(
+                                    checked = rippleAnimated,
+                                    onCheckedChange = { rippleAnimated = it }
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(20.dp))
+
+                            Text(
+                                text = "Ripple Color: ${colorOptions[selectedRippleColorIndex].first}",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold
+                            )
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                colorOptions.forEachIndexed { index, (_, color) ->
+                                    val isSelected = index == selectedRippleColorIndex
+                                    Box(
+                                        modifier = Modifier
+                                            .size(40.dp)
+                                            .clip(CircleShape)
+                                            .background(color, CircleShape)
+                                            .then(
+                                                if (isSelected) {
+                                                    Modifier.border(
+                                                        width = 3.dp,
+                                                        color = MaterialTheme.colorScheme.primary,
+                                                        shape = CircleShape
+                                                    )
+                                                } else {
+                                                    Modifier.border(
+                                                        width = 1.dp,
+                                                        color = MaterialTheme.colorScheme.outline,
+                                                        shape = CircleShape
+                                                    )
+                                                }
+                                            )
+                                            .clickable {
+                                                selectedRippleColorIndex = index
+                                                rippleColor = color
+                                            }
+                                    )
+                                }
                             }
                         }
 
