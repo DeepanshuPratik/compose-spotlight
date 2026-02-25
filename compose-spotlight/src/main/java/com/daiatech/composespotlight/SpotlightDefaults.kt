@@ -66,4 +66,26 @@ object SpotlightDefaults {
      * Controls how much extra space the spotlight cutout extends beyond the component bounds.
      */
     val SpotlightPadding = 4.dp
+
+    // ── HandGesture defaults ─────────────────────────────────────────────────
+
+    /**
+     * Default dimming overlay color for [SpotlightEffect.HandGesture].
+     * The Lottie hand animation uses its own built-in colors.
+     */
+    val HandGestureColor: Color = Color.Black
+
+    /**
+     * Default duration in milliseconds for one full tap-and-return cycle
+     * in [SpotlightEffect.HandGesture].
+     */
+    const val HandGestureSpeedMs: Int = 1200
+
+    // ── Effect default ───────────────────────────────────────────────────────
+
+    /**
+     * Default [SpotlightEffect] used by [DimmingGround] when no effect is specified.
+     * Defaults to [SpotlightEffect.Ripple] with standard configuration.
+     */
+    val Effect: SpotlightEffect = SpotlightEffect.Ripple()
 }
