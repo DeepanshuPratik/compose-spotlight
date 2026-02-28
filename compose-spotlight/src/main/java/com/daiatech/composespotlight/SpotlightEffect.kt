@@ -16,7 +16,34 @@
 
 package com.daiatech.composespotlight
 
+import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+
+/**
+ * Preferred display size for the [SpotlightEffect.HandGesture] animation.
+ *
+ * Each tier maps to a fixed dp value that acts as the *target* size of the Lottie hand.
+ * When the spotlighted component sits near a screen edge the renderer scales the hand
+ * down so its tap-contact point still aligns correctly, but it will never scale below
+ * [SpotlightDefaults.HandGestureMinSizeDp].
+ *
+ * | Tier | dp  | Typical use-case                        |
+ * |------|-----|-----------------------------------------|
+ * | XS   | 48  | Dense UIs, small icons                  |
+ * | S    | 72  | Compact layouts                         |
+ * | M    | 96  | Default – suits most targets            |
+ * | L    | 128 | Prominent CTAs, large buttons           |
+ * | XL   | 160 | Hero elements, full-width targets       |
+ */
+enum class HandGestureSize(val dp: Dp) {
+    XS(48.dp),
+    S(72.dp),
+    M(96.dp),
+    L(128.dp),
+    XL(160.dp),
+}
 
 /**
  * Defines the visual effect shown in the dimming overlay around the spotlighted component.
@@ -28,6 +55,7 @@ import androidx.compose.ui.graphics.Color
  * - [HandGesture]: an animated pointing-hand icon that bobs toward the spotlight,
  *   indicating where the user should tap.
  */
+@Immutable
 sealed class SpotlightEffect {
 
     /**
@@ -46,6 +74,7 @@ sealed class SpotlightEffect {
      *   Lower values produce faster ripples; higher values produce slower ones.
      *   Default: [SpotlightDefaults.RippleSpeedMs].
      */
+    @Immutable
     data class Ripple(
         val intensity: Float = SpotlightDefaults.RippleIntensity,
         val color: Color = SpotlightDefaults.RippleColor,
@@ -67,9 +96,15 @@ sealed class SpotlightEffect {
      *   The Lottie animation's natural speed is ~2020ms — values below that speed
      *   it up, values above slow it down.
      *   Default: [SpotlightDefaults.HandGestureSpeedMs].
+     * @param size Preferred display size of the hand animation.
+     *   The renderer will scale it down automatically when near a screen edge to keep
+     *   the tap-contact point aligned with the spotlight target.
+     *   Default: [SpotlightDefaults.HandGestureSize].
      */
+    @Immutable
     data class HandGesture(
         val color: Color = SpotlightDefaults.HandGestureColor,
         val speedMs: Int = SpotlightDefaults.HandGestureSpeedMs,
+        val size: HandGestureSize = SpotlightDefaults.HandGestureSize,
     ) : SpotlightEffect()
 }

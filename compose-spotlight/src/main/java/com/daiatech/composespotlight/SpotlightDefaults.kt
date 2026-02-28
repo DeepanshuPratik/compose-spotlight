@@ -81,6 +81,23 @@ object SpotlightDefaults {
      */
     const val HandGestureSpeedMs: Int = 1200
 
+    /**
+     * Default preferred size for the [SpotlightEffect.HandGesture] Lottie animation.
+     * Maps to [HandGestureSize.M] (96 dp).
+     */
+    val HandGestureSize: HandGestureSize = com.daiatech.composespotlight.HandGestureSize.M
+
+    /**
+     * Absolute minimum dp the hand animation will be scaled down to when the spotlighted
+     * component sits close to a screen edge. Keeps the hand legible regardless of size tier.
+     */
+    val HandGestureMinSizeDp = 32.dp
+
+    /**
+     * Dimming overlay alpha used by [SpotlightEffect.HandGesture].
+     */
+    const val HandGestureOverlayAlpha: Float = 0.6f
+
     // ── Effect default ───────────────────────────────────────────────────────
 
     /**
