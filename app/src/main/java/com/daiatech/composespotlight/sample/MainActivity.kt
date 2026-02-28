@@ -68,6 +68,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.daiatech.composespotlight.DimmingGround
 import com.daiatech.composespotlight.FakeSpotlightController
+import com.daiatech.composespotlight.HandGestureSize
 import com.daiatech.composespotlight.SpotlightController
 import com.daiatech.composespotlight.SpotlightDefaults
 import com.daiatech.composespotlight.SpotlightEffect
@@ -140,13 +141,14 @@ fun SampleScreen(controller: SpotlightController) {
     // HandGesture configuration
     var handGestureColor by remember { mutableStateOf(SpotlightDefaults.HandGestureColor) }
     var handGestureSpeedMs by rememberSaveable { mutableIntStateOf(SpotlightDefaults.HandGestureSpeedMs) }
+    var handGestureSize by rememberSaveable { mutableStateOf(SpotlightDefaults.HandGestureSize) }
     var selectedHandColorIndex by rememberSaveable { mutableStateOf(0) }
 
     var showSearchBar by rememberSaveable { mutableStateOf(false) }
     var searchQuery by rememberSaveable { mutableStateOf("") }
 
     val effect: SpotlightEffect = if (useHandGesture) {
-        SpotlightEffect.HandGesture(color = handGestureColor, speedMs = handGestureSpeedMs)
+        SpotlightEffect.HandGesture(color = handGestureColor, speedMs = handGestureSpeedMs, size = handGestureSize)
     } else {
         SpotlightEffect.Ripple(
             intensity = rippleIntensity,
@@ -373,6 +375,46 @@ fun SampleScreen(controller: SpotlightController) {
                             ) {
                                 Text("Fast", style = MaterialTheme.typography.labelSmall)
                                 Text("Slow", style = MaterialTheme.typography.labelSmall)
+                            }
+
+                            Spacer(modifier = Modifier.height(16.dp))
+
+                            Text(
+                                text = "Hand Size",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold
+                            )
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                HandGestureSize.entries.forEach { sizeOption ->
+                                    val isSelected = sizeOption == handGestureSize
+                                    Button(
+                                        onClick = { handGestureSize = sizeOption },
+                                        modifier = Modifier.weight(1f),
+                                        colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                                            containerColor = if (isSelected)
+                                                MaterialTheme.colorScheme.primary
+                                            else
+                                                MaterialTheme.colorScheme.surfaceVariant,
+                                            contentColor = if (isSelected)
+                                                MaterialTheme.colorScheme.onPrimary
+                                            else
+                                                MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    ) {
+                                        Text(
+                                            text = sizeOption.name,
+                                            style = MaterialTheme.typography.labelMedium
+                                        )
+                                    }
+                                }
                             }
 
                             Spacer(modifier = Modifier.height(16.dp))

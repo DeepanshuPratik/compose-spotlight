@@ -471,8 +471,8 @@ internal fun DimOverlay(
                     val cx = highlightXCoordinate + objectHighlightWidth / 2f
                     val cy = highlightYCoordinate + objectHighlightHeight / 2f
 
-                    // Fixed Lottie size — consistent across all spotlight targets
-                    val lottieSizeDp = 96.dp
+                    // Preferred Lottie size driven by the HandGestureSize tier chosen by the caller.
+                    val lottieSizeDp = effect.size.dp
                     val lottieSizePx = with(density) { lottieSizeDp.toPx() }
 
                     // Canvas: dim overlay + spotlight cutout
@@ -486,7 +486,7 @@ internal fun DimOverlay(
                             val cutoutH = objectHighlightHeight.toFloat() + padding * 2
 
                             // Layer 1: solid dim overlay using the effect color
-                            drawRect(color = effect.color.copy(alpha = 0.6f))
+                            drawRect(color = effect.color.copy(alpha = SpotlightDefaults.HandGestureOverlayAlpha))
 
                             // Layer 2: clear the spotlight cutout
                             val cutoutOutline = highlightShape.createOutline(
@@ -542,8 +542,8 @@ internal fun DimOverlay(
 
                         val maxSafeSizePx = minOf(maxByLeft, maxByRight, maxByTop, maxByBottom)
                         val resolvedSizePx = maxSafeSizePx.coerceIn(
-                            with(density) { 48.dp.toPx() },
-                            lottieSizePx   // capped at the preferred 96dp
+                            with(density) { SpotlightDefaults.HandGestureMinSizeDp.toPx() },
+                            lottieSizePx   // capped at the preferred size from HandGestureSize tier
                         )
                         val resolvedSizeDp = with(density) { resolvedSizePx.toDp() }
 
