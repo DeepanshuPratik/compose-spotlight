@@ -1,4 +1,4 @@
-name: Publish to Maven Central
+name: Publish Release
 
 on:
   push:
@@ -9,6 +9,9 @@ jobs:
   publish:
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: write  # needed to create GitHub Releases
+
     steps:
       - uses: actions/checkout@v4
 
@@ -17,6 +20,9 @@ jobs:
         with:
           java-version: '21'
           distribution: 'temurin'
+
+      - name: Build release AAR
+        run: ./gradlew :compose-spotlight:assembleRelease
 
       - name: Decode GPG key
         run: echo "${{ secrets.SIGNING_SECRET_KEY }}" | base64 -d > $HOME/secring.gpg
@@ -29,3 +35,11 @@ jobs:
           ORG_GRADLE_PROJECT_signingInMemoryKeyId: ${{ secrets.SIGNING_KEY_ID }}
           ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_PASSWORD }}
           ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_SECRET_KEY }}
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ${{ github.ref_name }}
+          body_path: CHANGELOG.md
+          files: compose-spotlight/build/outputs/aar/compose-spotlight-release.aar
+          generate_release_notes: false

@@ -9,11 +9,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Planned
 - Compose Multiplatform support (iOS, Desktop, Web)
-- Custom shape support beyond Circle and Rectangle
 - Animation customization API
 - Analytics hooks for tracking spotlight views
 - Priority queue support
 - Conditional spotlights based on user behavior
+- DataStore support (replacing SharedPreferences)
+
+## [1.1.0] - 2026-03-01
+
+### Added
+- **Hand Gesture Overlay**: Animated Lottie-based hand gesture (swipe/tap) displayed over spotlight zones to guide users
+- **Shape-Adaptive Ripple Effects**: Ripple animations that match the spotlight shape (circle or rectangle)
+- **Animated Traveling Wave**: Spotlight ripple now uses an animated traveling wave effect for a more polished look
+- **Spotlight Padding**: New padding configuration for spotlight zones, giving control over the highlight area around the target element
+- **Enhanced Ripple Configuration**: Configurable ripple color, stroke width, and animation parameters
+
+### Fixed
+- **Improved Recomposition**: Core data classes are now properly marked as immutable (`@Immutable`), reducing unnecessary recompositions in Compose
+
+### Known Issues
+- Caret drawing for tooltips is currently disabled (see issue #1160)
+- `SpotlightControlMode` enum is defined but not yet used
+- Dimming overlay color and opacity are not customizable (hardcoded to 50% black)
+- ExoPlayer is directly exposed in public API (abstraction deferred to v1.2.0)
+- SharedPreferences only (DataStore support planned for v1.2.0)
 
 ## [1.0.0] - 2026-02-07
 
@@ -159,5 +178,6 @@ We use [Semantic Versioning](https://semver.org/):
 
 ---
 
-[Unreleased]: https://github.com/DeepanshuPratik/compose-spotlight/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/DeepanshuPratik/compose-spotlight/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/DeepanshuPratik/compose-spotlight/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/DeepanshuPratik/compose-spotlight/releases/tag/v1.0.0

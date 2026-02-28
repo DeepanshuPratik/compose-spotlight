@@ -76,7 +76,7 @@ mavenPublishing {
     publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL)
     signAllPublications()
 
-    coordinates("io.github.deepanshupratik", "compose-spotlight", "1.0.0")
+    coordinates("io.github.deepanshupratik", "compose-spotlight", "1.1.0")
 
     pom {
         name.set("Compose Spotlight")
